@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection;
 using DataExtraction.Library.Interfaces;
 using DataExtraction.Library.Services;
 
@@ -10,6 +11,10 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddScoped<IExtractPdfService, ExtractPdfService>();
+builder.Services.AddScoped<IRetailerSelection, RetailerSelection>();
+
+// Other service registrations...
+
 
 var app = builder.Build();
 

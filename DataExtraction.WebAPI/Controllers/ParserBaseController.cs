@@ -8,10 +8,10 @@ namespace DataExtraction.WebAPI.Controllers
     [ApiController]
     public class ParserBaseController : ControllerBase
     {
-        private readonly string billsFolderPath = "C:/InvoiceStore/IncomingBills";
+        private readonly string billsFolderPath = "C:\\pdf";
         private readonly IExtractPdfService _extractPdfService;
 
-        public ParserBaseController(IExtractPdfService extractPdfService) 
+        public ParserBaseController(IExtractPdfService extractPdfService)
         {
             _extractPdfService = extractPdfService;
         }
@@ -28,7 +28,7 @@ namespace DataExtraction.WebAPI.Controllers
             {
                 return NotFound("Bills not found in the folder");
             }
-            foreach(var filePath in files)
+            foreach (var filePath in files)
             {
                 var extension = Path.GetExtension(filePath);
                 if (extension == ".pdf")
