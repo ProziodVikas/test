@@ -20,8 +20,6 @@ namespace DataExtraction.Library.Services
         }
         public async Task<List<string>> ExtractTextFromPdf(string filePath)
         {
-
-
             var extractedText = new List<string>();
             byte[] bytes = System.IO.File.ReadAllBytes(filePath);
             using (var memoryStream = new MemoryStream(bytes))

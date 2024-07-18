@@ -9,5 +9,6 @@
         StringList.Add("AGL");
         StringList.Add("agl.com");
         StringList.Add("Xyz");
+        StringList.Add("Suncorp");
     }
 }

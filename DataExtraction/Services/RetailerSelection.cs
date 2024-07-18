@@ -1,4 +1,5 @@
 ﻿using DataExtraction.Library.Interfaces;
+using DataExtraction.Library.Retailers;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -23,7 +24,6 @@ namespace DataExtraction.Library.Services
             retailerList.Sort();
             if (groupedText.ToString().Length != 0 && retailerList.ToList() != null)
             {
-
                 foreach (var retailer in retailerList)
                 {
                     if (!string.IsNullOrEmpty(selectedRetailer)) continue;
@@ -32,10 +32,26 @@ namespace DataExtraction.Library.Services
                         selectedRetailer = retailer.ToString();
 
                 }
+                if (!string.IsNullOrEmpty(selectedRetailer))
+                {
+                    IRetailer retailerInstance = null;
+
+                    switch (selectedRetailer.ToLower())
+                    {
+                        case "agl":
+                            retailerInstance = new AglRetailer();
+                            break;
+                        case "suncorp":
+                            retailerInstance = new SuncorpRetailer();
+                            break;
+                        default:
+                            throw new ArgumentException("Invalid retailer name");
+                    }
+
+                    retailerInstance?.ProcessAsync(groupedText);
+                }
 
             }
-
         }
-
     }
 }
