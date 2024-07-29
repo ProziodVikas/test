@@ -9,7 +9,7 @@ namespace DataExtraction.Library.Mappers.AglMappers
 {
     public class AglElectricityMapper : IMapper
     {
-        public async Task ProcessAsync(string groupedText)
+        public async Task ProcessAsync(string groupedText, List<string> extractedText)
         {
 
         }

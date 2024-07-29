@@ -8,6 +8,6 @@ namespace DataExtraction.Library.Interfaces
 {
     public interface IRetailer
     {
-        Task ProcessAsync(string groupedText);
+        Task ProcessAsync(string groupedText, List<string> extractedText);
     }
 }

@@ -1,12 +1,6 @@
 ﻿using DataExtraction.Library.Interfaces;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using UglyToad.PdfPig;
 using UglyToad.PdfPig.DocumentLayoutAnalysis.TextExtractor;
-using UglyToad.PdfPig.Util;
 
 namespace DataExtraction.Library.Services
 {
@@ -21,6 +15,7 @@ namespace DataExtraction.Library.Services
         public async Task<List<string>> ExtractTextFromPdf(string filePath)
         {
             var extractedText = new List<string>();
+            
             byte[] bytes = System.IO.File.ReadAllBytes(filePath);
             using (var memoryStream = new MemoryStream(bytes))
             {
@@ -31,8 +26,8 @@ namespace DataExtraction.Library.Services
                     {
                         extractedText.Add($"Page{page.Text}");
                         var extractor = ContentOrderTextExtractor.GetText(page);
-                        //var lines = extractor.Split("\r\n");
-                        //extractedText.AddRange(lines);
+                        var lines = extractor.Split("\r\n");
+                        extractedText.AddRange(lines);
                     }
                     await _retailerSelection.ProcessExtractedTextAsync(extractedText);
                 }

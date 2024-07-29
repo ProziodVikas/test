@@ -10,7 +10,7 @@ namespace DataExtraction.Library.Retailers
 {
     public class AglRetailer : IRetailer
     {
-        public async Task ProcessAsync(string groupedText)
+        public async Task ProcessAsync(string groupedText, List<string> extractedText)
         {
             IMapper mapperInstance = null;
             if (groupedText != null)
@@ -18,7 +18,11 @@ namespace DataExtraction.Library.Retailers
                 if (groupedText.Contains("Electricity"))
                 {
                     mapperInstance = new AglElectricityMapper();
-                    mapperInstance?.ProcessAsync(groupedText);
+                    mapperInstance?.ProcessAsync(groupedText, extractedText);
+                }
+                else
+                {
+
                 }
             }
         }

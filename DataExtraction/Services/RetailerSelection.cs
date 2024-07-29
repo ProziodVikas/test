@@ -1,14 +1,10 @@
 ﻿using DataExtraction.Library.Interfaces;
 using DataExtraction.Library.Retailers;
-using System.Collections.Generic;
-using System.Threading.Tasks;
-
 
 namespace DataExtraction.Library.Services
 {
     public class RetailerSelection : IRetailerSelection
     {
-
         public async Task ProcessExtractedTextAsync(List<string> extractedText)
         {
             var selectedRetailer = string.Empty;
@@ -48,7 +44,7 @@ namespace DataExtraction.Library.Services
                             throw new ArgumentException("Invalid retailer name");
                     }
 
-                    retailerInstance?.ProcessAsync(groupedText);
+                    retailerInstance?.ProcessAsync(groupedText, extractedText);
                 }
 
             }
