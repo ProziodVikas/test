@@ -3,11 +3,16 @@ using System.Collections.Generic;
 
 public class BillMetadata
 {
+    public string AccountNumber { get; set; }
+    public string InvoiceNumber { get; set; }
     public string Country { get; set; }//global
     public string Commodity { get; set; }
     public string RetailerShortName { get; set; }
-    public string AccountNumber { get; set; }
-    public string InvoiceNumber { get; set; }
+    public string Address { get; set; }
+    public string City { get; set; }
+    public string Postcode { get; set; }
+    public DateOnly? PeriodFrom { get; set; }
+    public DateOnly? PeriodTo { get; set; }
     public DateTime? IssueDate { get; set; }
     public DateTime? DueDate { get; set; }
 

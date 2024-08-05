@@ -21,21 +21,31 @@ namespace DataExtraction.Library.Services
             using (var csv = new CsvWriter(writer, CultureInfo.InvariantCulture))
             {
                 // Write the header row for the metadata fields
+                csv.WriteField(nameof(billMetadata.AccountNumber));
+                csv.WriteField(nameof(billMetadata.InvoiceNumber));
                 csv.WriteField(nameof(billMetadata.Country));
                 csv.WriteField(nameof(billMetadata.Commodity));
                 csv.WriteField(nameof(billMetadata.RetailerShortName));
-                csv.WriteField(nameof(billMetadata.AccountNumber));
-                csv.WriteField(nameof(billMetadata.InvoiceNumber));
+                csv.WriteField(nameof(billMetadata.Address));
+                csv.WriteField(nameof(billMetadata.City));
+                csv.WriteField(nameof(billMetadata.Postcode));
+                csv.WriteField(nameof(billMetadata.PeriodFrom));
+                csv.WriteField(nameof(billMetadata.PeriodTo));
                 csv.WriteField(nameof(billMetadata.IssueDate));
                 csv.WriteField(nameof(billMetadata.DueDate));
                 csv.NextRecord();
 
                 // Write the values for the metadata fields
+                csv.WriteField(billMetadata.AccountNumber);
+                csv.WriteField(billMetadata.InvoiceNumber);
                 csv.WriteField(billMetadata.Country);
                 csv.WriteField(billMetadata.Commodity);
                 csv.WriteField(billMetadata.RetailerShortName);
-                csv.WriteField(billMetadata.AccountNumber);
-                csv.WriteField(billMetadata.InvoiceNumber);
+                csv.WriteField(billMetadata.Address);
+                csv.WriteField(billMetadata.City);
+                csv.WriteField(billMetadata.Postcode);
+                csv.WriteField(billMetadata.PeriodFrom?.ToString("dd-MM-yyyy"));
+                csv.WriteField(billMetadata.PeriodTo?.ToString("dd-MM-yyyy"));
                 csv.WriteField(billMetadata.IssueDate?.ToString("MM-dd-yyyy HH:mm"));
                 csv.WriteField(billMetadata.DueDate?.ToString("MM-dd-yyyy HH:mm"));
                 csv.NextRecord();
