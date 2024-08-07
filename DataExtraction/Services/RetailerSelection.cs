@@ -40,6 +40,12 @@ namespace DataExtraction.Library.Services
                         case "suncorp":
                             retailerInstance = new SuncorpRetailer();
                             break;
+                        case "genesis":
+                            retailerInstance = new GenesisRetailer();
+                            break;
+                        case "meridian":
+                            retailerInstance = new MeridianRetailer();
+                            break;
                         default:
                             throw new ArgumentException("Invalid retailer name");
                     }

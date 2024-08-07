@@ -7,8 +7,8 @@
 
         StringList.Add("Origin");
         StringList.Add("AGL");
-        StringList.Add("agl.com");
-        StringList.Add("Xyz");
+        StringList.Add("Meridian");
+        StringList.Add("Genesis");
         StringList.Add("Suncorp");
     }
 }

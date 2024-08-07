@@ -21,71 +21,139 @@ namespace DataExtraction.Library.Services
             using (var csv = new CsvWriter(writer, CultureInfo.InvariantCulture))
             {
                 // Write the header row for the metadata fields
+                //csv.WriteField(nameof(billMetadata.BillIdentifier));
                 csv.WriteField(nameof(billMetadata.AccountNumber));
                 csv.WriteField(nameof(billMetadata.InvoiceNumber));
-                csv.WriteField(nameof(billMetadata.Country));
-                csv.WriteField(nameof(billMetadata.Commodity));
-                csv.WriteField(nameof(billMetadata.RetailerShortName));
-                csv.WriteField(nameof(billMetadata.Address));
-                csv.WriteField(nameof(billMetadata.City));
-                csv.WriteField(nameof(billMetadata.Postcode));
-                csv.WriteField(nameof(billMetadata.PeriodFrom));
-                csv.WriteField(nameof(billMetadata.PeriodTo));
+                csv.WriteField(nameof(billMetadata.BillingPeriod));
                 csv.WriteField(nameof(billMetadata.IssueDate));
                 csv.WriteField(nameof(billMetadata.DueDate));
-                csv.NextRecord();
+                csv.WriteField(nameof(billMetadata.ServiceDescription));
+                csv.WriteField(nameof(billMetadata.TotalAmountDue));
+                csv.WriteField(nameof(billMetadata.PaymentMethod));
+                csv.WriteField(nameof(billMetadata.OpeningBalance));
+                csv.WriteField(nameof(billMetadata.PreviousPayment));
+                csv.WriteField(nameof(billMetadata.CustomerServiceContact));
+                csv.WriteField(nameof(billMetadata.BillingAddress));
+                csv.WriteField(nameof(billMetadata.CurrentBillAmount));
 
-                // Write the values for the metadata fields
+
+                csv.WriteField(nameof(billMetadata.ICP));
+                csv.WriteField(nameof(billMetadata.ReadStartDate));
+                csv.WriteField(nameof(billMetadata.ReadEndDate));
+                csv.WriteField(nameof(billMetadata.FixedChargeQuantity));
+                csv.WriteField(nameof(billMetadata.FixedChargeRate));
+                csv.WriteField(nameof(billMetadata.FixedChargeTotal));
+                csv.WriteField(nameof(billMetadata.GST));
+                //csv.WriteField(nameof(billMetadata.AccountDate));              
+                //csv.WriteField(nameof(billMetadata.Address));
+                //csv.WriteField(nameof(billMetadata.City));
+                //csv.WriteField(nameof(billMetadata.Postcode));
+                //csv.WriteField(nameof(billMetadata.PeriodFrom));
+                //csv.WriteField(nameof(billMetadata.PeriodTo));        
+                csv.NextRecord();
                 csv.WriteField(billMetadata.AccountNumber);
                 csv.WriteField(billMetadata.InvoiceNumber);
-                csv.WriteField(billMetadata.Country);
-                csv.WriteField(billMetadata.Commodity);
-                csv.WriteField(billMetadata.RetailerShortName);
-                csv.WriteField(billMetadata.Address);
-                csv.WriteField(billMetadata.City);
-                csv.WriteField(billMetadata.Postcode);
-                csv.WriteField(billMetadata.PeriodFrom?.ToString("dd-MM-yyyy"));
-                csv.WriteField(billMetadata.PeriodTo?.ToString("dd-MM-yyyy"));
-                csv.WriteField(billMetadata.IssueDate?.ToString("MM-dd-yyyy HH:mm"));
-                csv.WriteField(billMetadata.DueDate?.ToString("MM-dd-yyyy HH:mm"));
+                csv.WriteField(billMetadata.BillingPeriod);
+                csv.WriteField(billMetadata.IssueDate?.ToString("dd-MM-yyyy"));
+                csv.WriteField(billMetadata.DueDate?.ToString("dd-MM-yyyy"));
+                csv.WriteField(billMetadata.ServiceDescription);
+                csv.WriteField(billMetadata.TotalAmountDue);
+                csv.WriteField(billMetadata.PaymentMethod);
+                csv.WriteField(billMetadata.OpeningBalance);
+                csv.WriteField(billMetadata.PreviousPayment);
+                csv.WriteField(billMetadata.CustomerServiceContact);
+                csv.WriteField(billMetadata.BillingAddress);
+                csv.WriteField(billMetadata.CurrentBillAmount);
+
+
+
+
+                csv.WriteField(billMetadata.ICP);
+                csv.WriteField(billMetadata.ReadStartDate);
+                csv.WriteField(billMetadata.ReadEndDate);
+                csv.WriteField(billMetadata.FixedChargeQuantity);
+                csv.WriteField(billMetadata.FixedChargeRate);
+                csv.WriteField(billMetadata.FixedChargeTotal);
+                csv.WriteField(billMetadata.GST);
+
+
                 csv.NextRecord();
+                csv.NextRecord();
+
+                csv.WriteField(nameof(billMetadata.MeterNumber));
+                csv.WriteField(nameof(billMetadata.Multiplier));
+                csv.WriteField(nameof(billMetadata.Type));
+                csv.WriteField(nameof(billMetadata.PreviousReading));
+                csv.WriteField(nameof(billMetadata.CurrentReading));
+                csv.WriteField(nameof(billMetadata.Rate));
+                csv.WriteField(nameof(billMetadata.Quantity));
+                csv.WriteField(nameof(billMetadata.Total));
+                csv.NextRecord();
+
+                csv.WriteField(billMetadata.MeterNumber);
+                csv.WriteField(billMetadata.Multiplier);
+                csv.WriteField(billMetadata.Type);
+                csv.WriteField(billMetadata.PreviousReading);
+                csv.WriteField(billMetadata.CurrentReading);
+                csv.WriteField(billMetadata.Rate);
+                csv.WriteField(billMetadata.Quantity);
+                csv.WriteField(billMetadata.Total);
+                csv.NextRecord();
+
+
+
+
+
+
+
+
+
+
+                // Write the values for the metadata fields
+                // csv.WriteField(billMetadata.BillIdentifier);
+               
+
+                //csv.WriteField(billMetadata.AccountDate);
+                //csv.WriteField(billMetadata.Address);
+                //csv.WriteField(billMetadata.City);
+                //csv.WriteField(billMetadata.Postcode);
+                //csv.WriteField(billMetadata.PeriodFrom?.ToString("dd-MM-yyyy"));
+                //csv.WriteField(billMetadata.PeriodTo?.ToString("dd-MM-yyyy"));
+                csv.NextRecord();
+
+
+
+
+                
 
                 // Add a blank line for separation
                 csv.NextRecord();
 
                 // Write charges header
-                csv.WriteField("ChargeName");
-                csv.WriteField("Quantity");
-                csv.WriteField("Price");
-                csv.WriteField("Cost");
-                csv.NextRecord();
 
                 // Write the charges
-                foreach (var charge in billMetadata.Charges)
-                {
-                    csv.WriteField(charge.ChargeName);
-                    csv.WriteField(charge.Quantity);
-                    csv.WriteField(charge.Price);
-                    csv.WriteField(charge.Cost);
-                    csv.NextRecord();
-                }
+                //foreach (var charge in billMetadata.Charges)
+                //{
+                //    csv.WriteField(billMetadata.ICP);
+                //    csv.WriteField(billMetadata.ReadStartDate);
+                //    csv.WriteField(billMetadata.ReadEndDate);
+                //    csv.WriteField(billMetadata.FixedChargeQuantity);
+                //    csv.WriteField(billMetadata.FixedChargeRate);
+                //    csv.WriteField(billMetadata.FixedChargeTotal);
+                //    csv.WriteField(billMetadata.GST);
+                //    csv.NextRecord();
+                //}
 
                 // Add a blank line for separation
-                csv.NextRecord();
+                //csv.NextRecord();
 
                 // Write total header
-                csv.WriteField("");
-                csv.WriteField("Total Quantity");
-                csv.WriteField("Total Price");
-                csv.WriteField("Total Cost");
-                csv.NextRecord();
+                
+                   
+                
 
                 // Write the total
-                csv.WriteField(billMetadata.Total);
-                csv.WriteField(billMetadata.Total.Quantity);
-                csv.WriteField(billMetadata.Total.Price);
-                csv.WriteField(billMetadata.Total.Cost);
-                csv.NextRecord();
+                
             }
         }
     }

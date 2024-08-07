@@ -25,9 +25,9 @@ namespace DataExtraction.Library.Mappers.SuncorpMappers
         {
             string combinedText = string.Join(Environment.NewLine, extractedText);
 
-            var country = Country.AU.ToString();
-            var commodity = Commodity.Electricity.ToString();
-            var retailerShortName = RetailerShortName.Suncorp.ToString();
+            //var country = Country.AU.ToString();
+            //var commodity = Commodity.Electricity.ToString();
+            //var retailerShortName = RetailerShortName.Suncorp.ToString();
 
 
 
@@ -426,14 +426,14 @@ namespace DataExtraction.Library.Mappers.SuncorpMappers
             {
                 AccountNumber = accountNumber,
                 InvoiceNumber = invoiceNumber,
-                Country = country,
-                Commodity = commodity,
-                RetailerShortName = retailerShortName,
-                Address = address,
-                City = city,
-                Postcode = postcode,
-                PeriodFrom = periodFrom, 
-                PeriodTo = periodTo,
+                //Country = country,
+                //Commodity = commodity,
+                //RetailerShortName = retailerShortName,
+                //Address = address,
+                //City = city,
+                //Postcode = postcode,
+                //PeriodFrom = periodFrom, 
+                //PeriodTo = periodTo,
                 IssueDate = issueDate,
                 DueDate = dueDate,
             };
@@ -443,13 +443,13 @@ namespace DataExtraction.Library.Mappers.SuncorpMappers
 
 
 
-            billMetadata.Charges.Add(new Charge
-            {
-                ChargeName = chargeName,
-                Quantity = (int)quantity,
-                Price = price,
-                Cost = cost
-            });
+            //billMetadata.Charges.Add(new Charge
+            //{
+            //    ChargeName = chargeName,
+            //    Quantity = (int)quantity,
+            //    Price = price,
+            //    Cost = cost
+            //});
 
 
 
@@ -459,12 +459,12 @@ namespace DataExtraction.Library.Mappers.SuncorpMappers
 
 
             // Add total
-            billMetadata.Total = new Total
-            {
-                Quantity = 1,
-                Price = 1,
-                Cost = cost
-            };
+            //billMetadata.Total = new Total
+            //{
+            //    Quantity = 1,
+            //    Price = 1,
+            //    Cost = cost
+            //};
 
             await _csvBillMapper.WriteToCsvAsync(billMetadata);
         }

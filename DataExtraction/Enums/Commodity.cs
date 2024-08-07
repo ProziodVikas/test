@@ -1,4 +1,4 @@
 ﻿namespace DataExtraction.Library.Enums
 {
-    public enum Commodity { Electricity, Water, Gas, Other }
+    public enum Commodity { Electricity, Water, Gas, kWh, Other }
 }

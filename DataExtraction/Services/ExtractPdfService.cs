@@ -68,14 +68,24 @@ namespace DataExtraction.Library.Services
                     var absorber = new TextAbsorber();
                     page.Accept(absorber);
 
-                    var pageText = absorber.Text.Split('\n');
-                    extractedText.AddRange(pageText);
+                    // Split the extracted text into lines and add each line to the list
+                    var lines = absorber.Text.Split(new[] { '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
+                    extractedText.Add($"Page {i}:");
+                    extractedText.AddRange(lines);
                 }
             }
 
+            // Process the extracted text asynchronously
             await _retailerSelection.ProcessExtractedTextAsync(extractedText);
             return extractedText;
         }
+
+
+
+
+
+
+
     }
 
 }
