@@ -46,6 +46,9 @@ namespace DataExtraction.Library.Services
                         case "meridian":
                             retailerInstance = new MeridianRetailer();
                             break;
+                        case "megatel":
+                            retailerInstance = new MegatelRetailer();
+                            break;
                         default:
                             throw new ArgumentException("Invalid retailer name");
                     }

@@ -474,7 +474,7 @@ namespace DataExtraction.Library.Mappers.SuncorpMappers
                 {
                     string startDateStr = match.Groups[1].Value;
            
-                    if (DateTime.TryParseExact(startDateStr, "d MMMM yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsedDate))
+                    if (DateTime.TryParseExact(startDateStr, "dd MMM yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsedDate))
                     {
                         readStartDate = parsedDate.ToString("dd/MM/yyyy");
                     }
@@ -507,7 +507,7 @@ namespace DataExtraction.Library.Mappers.SuncorpMappers
                 if (match.Success)
                 {
                     string endDateStr = match.Groups[2].Value;
-                    if (DateTime.TryParseExact(endDateStr, "d MMMM yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsedDate))
+                    if (DateTime.TryParseExact(endDateStr, "dd MMM yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsedDate))
                     {
                         readEndDate = parsedDate.ToString("dd/MM/yyyy");
                     }
@@ -645,7 +645,7 @@ namespace DataExtraction.Library.Mappers.SuncorpMappers
 
             ////Aspose.PDF issueDate
             var datePattern = @"(\d{1,2}\s[A-Za-z]+\s\d{4})";
-            DateTime? issueDate = null;
+            var issueDate = string.Empty;
 
             foreach (var line in extractedText)
             {
@@ -653,9 +653,9 @@ namespace DataExtraction.Library.Mappers.SuncorpMappers
                 if (match.Success)
                 {
                     string dateStr = match.Groups[1].Value;
-                    if (DateTime.TryParseExact(dateStr, "d MMMM yyyy", null, System.Globalization.DateTimeStyles.None, out DateTime parsedDate))
+                    if (DateTime.TryParseExact(dateStr, "dd/MM/yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsedDate))
                     {
-                        issueDate = parsedDate;
+                        issueDate = parsedDate.ToString("dd/MM/yyyy");
                         break;
                     }
                 }
@@ -672,11 +672,11 @@ namespace DataExtraction.Library.Mappers.SuncorpMappers
 
 
             ////Aspose.PDF dueDate
-            DateTime? dueDate = null;
+            var dueDate = string.Empty;
             if (extractedText.Any(s => s.Contains("Due Date:")|| s.Contains("Due")))
             {
                 var dueDateText = extractedText.LastOrDefault(s => s.Contains("Due Date:")|| s.Contains("Due"));
-                dueDate = Convert.ToDateTime(dueDateText.Split("Due").Last().Trim());
+                dueDate = Convert.ToString(dueDateText.Split("Due").Last().Trim());
             }
 
 
@@ -954,7 +954,7 @@ namespace DataExtraction.Library.Mappers.SuncorpMappers
 
 
 
-
+            
 
 
             var total = string.Empty;

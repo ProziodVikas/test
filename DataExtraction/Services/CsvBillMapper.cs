@@ -54,8 +54,8 @@ namespace DataExtraction.Library.Services
                 csv.WriteField(billMetadata.AccountNumber);
                 csv.WriteField(billMetadata.InvoiceNumber);
                 csv.WriteField(billMetadata.BillingPeriod);
-                csv.WriteField(billMetadata.IssueDate?.ToString("dd-MM-yyyy"));
-                csv.WriteField(billMetadata.DueDate?.ToString("dd-MM-yyyy"));
+                csv.WriteField(billMetadata.IssueDate);
+                csv.WriteField(billMetadata.DueDate);
                 csv.WriteField(billMetadata.ServiceDescription);
                 csv.WriteField(billMetadata.TotalAmountDue);
                 csv.WriteField(billMetadata.PaymentMethod);

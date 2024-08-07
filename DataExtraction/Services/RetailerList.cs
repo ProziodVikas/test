@@ -6,7 +6,7 @@
         StringList = new List<string>();
 
         StringList.Add("Origin");
-        StringList.Add("AGL");
+        StringList.Add("Megatel");
         StringList.Add("Meridian");
         StringList.Add("Genesis");
         StringList.Add("Suncorp");

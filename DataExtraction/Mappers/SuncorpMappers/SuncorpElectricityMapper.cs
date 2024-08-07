@@ -331,11 +331,11 @@ namespace DataExtraction.Library.Mappers.SuncorpMappers
 
 
             ////Aspose.PDF issueDate
-            DateTime? issueDate = null;
+            var issueDate = string.Empty;
             if (extractedText.Any(s => s.Contains("Date:")))
             {
                 var issueDateText = extractedText.FirstOrDefault(s => s.Contains("Date:"));
-                issueDate = Convert.ToDateTime(issueDateText.Split("Date:").Last().Trim());
+                issueDate = Convert.ToString(issueDateText.Split("Date:").Last().Trim());
             }
 
 
@@ -357,11 +357,11 @@ namespace DataExtraction.Library.Mappers.SuncorpMappers
 
 
             ////Aspose.PDF dueDate
-            DateTime? dueDate = null;
+            var dueDate = string.Empty;
             if (extractedText.Any(s => s.Contains("Due Date:")))
             {
                 var dueDateText = extractedText.LastOrDefault(s => s.Contains("Due Date:"));
-                dueDate = Convert.ToDateTime(dueDateText.Split("Due Date:").Last().Trim());
+                dueDate = Convert.ToString(dueDateText.Split("Due Date:").Last().Trim());
             }
 
 
@@ -392,8 +392,8 @@ namespace DataExtraction.Library.Mappers.SuncorpMappers
 
 
             ////PdfPig 
-            DateTime? startDate = null;
-            DateTime? endDate = null;
+            var startDate = string.Empty;
+            var endDate = string.Empty;
             bool isBillingPeriodPresent = combinedText.Contains("Metered Electricity");
             if (isBillingPeriodPresent)
             {

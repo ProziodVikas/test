@@ -7,8 +7,8 @@ public class BillMetadata
     public string AccountNumber { get; set; }
     public string InvoiceNumber { get; set; }
     public string BillingPeriod { get; set; }
-    public DateTime? IssueDate { get; set; }
-    public DateTime? DueDate { get; set; }
+    public string IssueDate { get; set; }
+    public string DueDate { get; set; }
     public string NextBillingDate { get; set; }
     public string ServiceDescription { get; set; }
     public string TotalAmountDue { get; set; }
