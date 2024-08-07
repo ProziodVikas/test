@@ -24,8 +24,8 @@ public class BillMetadata
 
 
     public string ICP { get; set; }
-    public DateOnly? ReadStartDate { get; set; }
-    public DateOnly? ReadEndDate { get; set; }
+    public string ReadStartDate { get; set; }
+    public string ReadEndDate { get; set; }
     public string FixedChargeQuantity { get; set; }
     public string FixedChargeRate { get; set; }
     public string FixedChargeTotal { get; set; }

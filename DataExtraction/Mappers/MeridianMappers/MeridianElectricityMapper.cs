@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Drawing.Drawing2D;
+using System.Globalization;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -11,6 +12,7 @@ using Aspose.Pdf.Operators;
 using DataExtraction.Library.Enums;
 using DataExtraction.Library.Interfaces;
 using DataExtraction.Library.Services;
+using UglyToad.PdfPig.Graphics.Operations.PathPainting;
 
 namespace DataExtraction.Library.Mappers.SuncorpMappers
 {
@@ -145,11 +147,31 @@ namespace DataExtraction.Library.Mappers.SuncorpMappers
 
 
             var billingPeriod = string.Empty;
-            if (extractedText.Any(s => s.Contains("period")))
+            var billDetailsIndex = extractedText.FindIndex(s => s.Contains("Your bill details"));
+
+            if (billDetailsIndex != -1 && billDetailsIndex + 1 < extractedText.Count)
             {
-                var billingPeriodText = extractedText.FirstOrDefault(s => s.Contains("period"));
-                billingPeriod = billingPeriodText.Split("period ").Last().Trim();
+                var dateRangeLine = extractedText[billDetailsIndex + 1].Trim();
+
+                // Use regex to match the date range pattern
+                var regex = new Regex(@"(\d{1,2} \w+ \d{4}) to (\d{1,2} \w+ \d{4})");
+                var match = regex.Match(dateRangeLine);
+
+                if (match.Success)
+                {
+                    var startDateStr = match.Groups[1].Value;
+                    var endDateStr = match.Groups[2].Value;
+
+                    if (DateTime.TryParseExact(startDateStr, "d MMMM yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var startDate) &&
+                        DateTime.TryParseExact(endDateStr, "d MMMM yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var endDate))
+                    {
+                        var startFormatted = startDate.ToString("dd/MM/yyyy");
+                        var endFormatted = endDate.ToString("dd/MM/yyyy");
+                        billingPeriod = $"{startFormatted} to {endFormatted}";
+                    }
+                }
             }
+
 
 
 
@@ -443,7 +465,7 @@ namespace DataExtraction.Library.Mappers.SuncorpMappers
 
             //Aspose PeriodFrom
             var dateRangePattern = @"(\d{1,2}\s[A-Za-z]+\s\d{4})\s*to\s*(\d{1,2}\s[A-Za-z]+\s\d{4})";
-            DateOnly? readStartDate = null;
+            var readStartDate = string.Empty;
 
             foreach (var line in extractedText)
             {
@@ -452,9 +474,9 @@ namespace DataExtraction.Library.Mappers.SuncorpMappers
                 {
                     string startDateStr = match.Groups[1].Value;
            
-                    if (DateTime.TryParseExact(startDateStr, "d MMMM yyyy", null, System.Globalization.DateTimeStyles.None, out DateTime parsedDate))
+                    if (DateTime.TryParseExact(startDateStr, "d MMMM yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsedDate))
                     {
-                        readStartDate = DateOnly.FromDateTime(parsedDate);
+                        readStartDate = parsedDate.ToString("dd/MM/yyyy");
                     }
                     break;
                 }
@@ -478,18 +500,16 @@ namespace DataExtraction.Library.Mappers.SuncorpMappers
 
 
 
-
-
-            DateOnly? readEndDate = null;
+            var readEndDate = string.Empty;
             foreach (var line in extractedText)
             {
                 var match = Regex.Match(line, dateRangePattern, RegexOptions.IgnoreCase);
                 if (match.Success)
                 {
                     string endDateStr = match.Groups[2].Value;
-                    if (DateTime.TryParseExact(endDateStr, "d MMMM yyyy", null, System.Globalization.DateTimeStyles.None, out DateTime parsedDate))
+                    if (DateTime.TryParseExact(endDateStr, "d MMMM yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsedDate))
                     {
-                        readEndDate = DateOnly.FromDateTime(parsedDate);
+                        readEndDate = parsedDate.ToString("dd/MM/yyyy");
                     }
                     break;
                 }
