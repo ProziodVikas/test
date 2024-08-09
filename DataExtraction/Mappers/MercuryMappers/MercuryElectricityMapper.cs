@@ -14,13 +14,13 @@ using DataExtraction.Library.Interfaces;
 using DataExtraction.Library.Services;
 using UglyToad.PdfPig.Graphics.Operations.PathPainting;
 
-namespace DataExtraction.Library.Mappers.MeridianMappers
+namespace DataExtraction.Library.Mappers.MercuryMappers
 {
-    public class MeridianElectricityMapper : IMapper
+    public class MercuryElectricityMapper : IMapper
     {
         private readonly CsvBillMapper _csvBillMapper;
 
-        public MeridianElectricityMapper(CsvBillMapper csvBillMapper)
+        public MercuryElectricityMapper(CsvBillMapper csvBillMapper)
         {
             _csvBillMapper = csvBillMapper;
         }
@@ -29,28 +29,7 @@ namespace DataExtraction.Library.Mappers.MeridianMappers
         {
             string combinedText = string.Join(Environment.NewLine, extractedText);
 
-            //var country = Country.AU.ToString();
-            //var commodity = Commodity.Electricity.ToString();
-            //var retailerShortName = RetailerShortName.Suncorp.ToString();
-
-
-
-
-
-
-
-            //var billIdentifier = BillIdentifier.ICP.ToString();
-            //if (extractedText.Any(s => s.Contains("Customer No:")))
-            //{
-            //    var billIdentifierText = extractedText.FirstOrDefault(s => s.Contains("Customer No:"));
-            //    billIdentifier = billIdentifierText.Split(":").Last().Trim();
-            //}
-
-
-
-
-
-
+            
 
 
 
@@ -507,7 +486,7 @@ namespace DataExtraction.Library.Mappers.MeridianMappers
                 if (match.Success)
                 {
                     string endDateStr = match.Groups[2].Value;
-                    if (DateTime.TryParseExact(endDateStr, "dd MMMM yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsedDate))
+                    if (DateTime.TryParseExact(endDateStr, "dd MMM yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsedDate))
                     {
                         readEndDate = parsedDate.ToString("dd/MM/yyyy");
                     }
@@ -1001,66 +980,6 @@ namespace DataExtraction.Library.Mappers.MeridianMappers
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-            ////PdfPig 
-            //DateTime? startDate = null;
-            //DateTime? endDate = null;
-            //bool isBillingPeriodPresent = combinedText.Contains("Metered Electricity");
-            //if (isBillingPeriodPresent)
-            //{
-            //    startDate = issueDate;
-            //    endDate = issueDate;
-            //}
-
-
-
-
-
-
-
-            //PdfPig
-            //string chargeName = "B8478 - Metered Electricity Jan to Mar 2024";
-            //decimal price = 14023.07m;
-            ////decimal quantity = 1m;
-            //string quantityUnit = "Unit";
-            //string priceUnit = "/Unit";
-            //decimal cost = 14023.07m;
-
-
-
-
-
-
-
-
             var billMetadata = new BillMetadata
             {
                 //BillIdentifier = billIdentifier,
@@ -1113,42 +1032,6 @@ namespace DataExtraction.Library.Mappers.MeridianMappers
 
 
             };
-
-
-
-
-
-
-            //billMetadata.Charges.Add(new Charge
-            //{
-            //    ICP = icp,
-            //    ReadStartDate = readStartDate,
-            //    ReadEndDate = readEndDate,
-            //    FixedChargeQuantity = fixedChargeQuantity,
-            //    FixedChargeRate = fixedChargeRate,
-            //    FixedChargeTotal = fixedChargeTotal,
-            //    GST = gst,
-            //});
-
-
-
-
-
-
-
-
-            // Add total
-            //billMetadata.Finaltotal.Add(new FinalTotal
-            //{
-            //    MeterNumber = meterNumber,
-            //    Multiplier = multiplier,
-            //    Type = type,
-            //    PreviousReading = previousReading,
-            //    CurrentReading = currentReading,
-            //    Rate = rate,
-            //    Quantity = quantity,
-            //    Total = total
-            //});
 
             await _csvBillMapper.WriteToCsvAsync(billMetadata);
         }

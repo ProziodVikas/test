@@ -34,8 +34,8 @@ namespace DataExtraction.Library.Services
 
                     switch (selectedRetailer.ToLower())
                     {
-                        case "agl":
-                            retailerInstance = new AglRetailer();
+                        case "nova":
+                            retailerInstance = new NovaRetailer();
                             break;
                         case "suncorp":
                             retailerInstance = new SuncorpRetailer();

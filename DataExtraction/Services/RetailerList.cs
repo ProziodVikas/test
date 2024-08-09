@@ -10,5 +10,7 @@
         StringList.Add("Meridian");
         StringList.Add("Genesis");
         StringList.Add("Suncorp");
+        StringList.Add("Nova");
     }
 }
+

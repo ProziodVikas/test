@@ -1,5 +1,5 @@
 ﻿using DataExtraction.Library.Interfaces;
-using DataExtraction.Library.Mappers.SuncorpMappers;
+using DataExtraction.Library.Mappers.MeridianMappers;
 using DataExtraction.Library.Services;
 using System;
 using System.Collections.Generic;
