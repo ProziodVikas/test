@@ -26,11 +26,13 @@ namespace DataExtraction.Library.Mappers.NovaMappers.NovaElectricityAndGasMapper
         {
             _csvBillMapper = csvBillMapper;
         }
+       
 
         public async Task ProcessAsync(string groupedText, List<string> extractedText)
         {
-            string combinedText = string.Join(Environment.NewLine, extractedText);
 
+            string combinedText = string.Join(Environment.NewLine, extractedText);
+            
 
 
             //global fields
@@ -136,23 +138,23 @@ namespace DataExtraction.Library.Mappers.NovaMappers.NovaElectricityAndGasMapper
                 // Split the date line into parts and manually construct the date
                 var dateParts = dateLine.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
 
-                    // Assume the format is "1 August 2024"
-                    var day = dateParts[3];
-                    var month = dateParts[4];
-                    var year = dateParts[5];
+                // Assume the format is "1 August 2024"
+                var day = dateParts[3];
+                var month = dateParts[4];
+                var year = dateParts[5];
 
-                    // Construct the full date string
-                    var dateString = $"{day} {month} {year}";
+                // Construct the full date string
+                var dateString = $"{day} {month} {year}";
 
-                    // Parse the date using DateTime.ParseExact
-                    // if (DateTime.TryParseExact(dateString, "d MMMM yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsedDate))
-                    //{
-                    if (DateTime.TryParse(dateString, out var parsedDate))
-                    {
-                        issueDate = parsedDate.ToString("dd/MM/yyyy");
-                    }
-                    //}
-                
+                // Parse the date using DateTime.ParseExact
+                // if (DateTime.TryParseExact(dateString, "d MMMM yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsedDate))
+                //{
+                if (DateTime.TryParse(dateString, out var parsedDate))
+                {
+                    issueDate = parsedDate.ToString("dd/MM/yyyy");
+                }
+                //}
+
             }
 
             ////Aspose.PDF dueDate
@@ -367,7 +369,7 @@ namespace DataExtraction.Library.Mappers.NovaMappers.NovaElectricityAndGasMapper
 
                 if (dateParts.Length == 2)
                 {
-                    
+
                     var endDateString = dateParts[1].Trim();
                     var endDateStringClean = endDateString.Split(' ')[0].Trim();
                     if (DateTime.TryParseExact(endDateStringClean, "dd/MM/yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var endDate))
@@ -437,7 +439,7 @@ namespace DataExtraction.Library.Mappers.NovaMappers.NovaElectricityAndGasMapper
                 }
             }
 
-            
+
 
             var icp = string.Empty;
             if (extractedText.Any(s => s.Contains("ICP ")))
@@ -445,7 +447,7 @@ namespace DataExtraction.Library.Mappers.NovaMappers.NovaElectricityAndGasMapper
                 var icpText = extractedText.FirstOrDefault(s => s.Contains("ICP "));
                 icp = icpText.Split("ICP ").Last().Trim();
             }
-           
+
 
             string fixedChargeQuantity = string.Empty;
             string fixedChargeQuantityPattern = @"Daily charge\s*\(\d+\.\d+\s*c\/day\s*x\s*(\d+)\s*days\)";
@@ -771,7 +773,7 @@ namespace DataExtraction.Library.Mappers.NovaMappers.NovaElectricityAndGasMapper
 
 
 
-            var billMetadata = new BillMetadata
+            var billMetadataList = new BillMetadata
             {
                 //BillIdentifier = billIdentifier,
                 AccountNumber = accountNumber,
@@ -825,10 +827,8 @@ namespace DataExtraction.Library.Mappers.NovaMappers.NovaElectricityAndGasMapper
             };
 
 
-            await _csvBillMapper.WriteToCsvAsync(billMetadata);
+            await _csvBillMapper.WriteToCsvAsync(billMetadataList);
         }
 
     }
 }
-
-

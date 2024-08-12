@@ -29,8 +29,8 @@ public class ICP
     public string ReadStartDate { get; set; }
     public string ReadEndDate { get; set; }
     public List<Meter> Meters { get; set; } = new List<Meter>();
-}
 
+}
 public class Meter
 {
     public string MeterNumber { get; set; }
@@ -51,3 +51,5 @@ public class Type
     public string Quantity { get; set; }
     public string Total { get; set; }
 }
+
+
