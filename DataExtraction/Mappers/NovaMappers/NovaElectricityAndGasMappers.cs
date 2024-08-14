@@ -305,7 +305,8 @@ namespace DataExtraction.Library.Mappers.NovaMappers.NovaElectricityAndGasMapper
 
 
             var icpCode = string.Empty;
-
+            var charge = extractedText.FindIndex(s => s.Contains("Electricity Charges"));
+            var nextLine = extractedText[charge + 1];
             if (extractedText.Any(s => s.Contains("ICP number: ")))
             {
                 var icpText = extractedText.FirstOrDefault(s => s.Contains("ICP number: "));
@@ -321,7 +322,23 @@ namespace DataExtraction.Library.Mappers.NovaMappers.NovaElectricityAndGasMapper
 
 
 
+            icpCode = string.Empty;
+            charge = extractedText.FindIndex(s => s.Contains("Gas Charges"));
+            nextLine = extractedText[charge + 1];
+            {
+                if (extractedText.Any(s => s.Contains("ICP number: ")))
+                {
+                    var icpText = extractedText.FirstOrDefault(s => s.Contains("ICP number: "));
 
+                    // Extract the part after "ICP number: "
+                    var icpPart = icpText.Split(new[] { "ICP number: " }, StringSplitOptions.None).Last().Trim();
+
+                    // Find the first part that is fully numeric
+                    var icpParts = icpPart.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                    icpCode = icpParts[0].Split("ICP number: ")[0].Trim();
+
+                }
+            }
 
 
 
@@ -500,29 +517,21 @@ namespace DataExtraction.Library.Mappers.NovaMappers.NovaElectricityAndGasMapper
                             if (meterLabelLine.Contains("Number"))
                             {
                                 // Use a refined regex pattern to match the meter number exactly
-                                string meterNumberPattern = @"\b(\d+\/\d+)\b";
+                                string meterNumberPattern = @"\b(\d+)(\/\d+)?\b";
                                 var match = Regex.Match(meterNumberLine, meterNumberPattern, RegexOptions.IgnoreCase);
 
                                 if (match.Success)
                                 {
-                                    meterNumber = match.Value;
-
-                                    // Remove the trailing "/1" if it exists
-                                    if (meterNumber.EndsWith("/1"))
-                                    {
-                                        meterNumber = meterNumber.Substring(0, meterNumber.Length - 2);
-                                    }
+                                    meterNumber = match.Groups[1].Value; // Get only the first capturing group, excluding "/1"
 
                                     break; // Exit loop once the meter number is found
                                 }
                             }
                         }
-
-                        // If "Meter" is found but the following lines don't match the expected pattern, break the loop
-                        break;
                     }
                 }
             }
+
 
 
 
@@ -637,191 +646,257 @@ namespace DataExtraction.Library.Mappers.NovaMappers.NovaElectricityAndGasMapper
 
 
             var multiplier = string.Empty;
+            chargeType = "Electricity Charges"; // Define the charge type you're interested in
+            isChargeTypeFound = false;
 
-                            // Loop through each line in the extracted text with an index
-                            for (int i = 0; i < extractedText.Count; i++)
+            for (int i = 0; i < extractedText.Count; i++)
+            {
+                var line = extractedText[i];
+
+                // Check if the line contains the charge type
+                if (line.Contains(chargeType))
+                {
+                    isChargeTypeFound = true;
+                }
+                else if (isChargeTypeFound)
+                {
+                    // Look for the line that contains "Meter"
+                    if (line.Contains("Meter"))
+                    {
+                        // Ensure that the "Number" label and the actual meter number are within bounds
+                        if (i + 2 < extractedText.Count)
+                        {
+                            var meterLabelLine = extractedText[i + 2]; // The line under "Meter"
+                            var meterNumberLine = extractedText[i + 3]; // The actual meter number line
+
+                            // Check if the line below "Meter" contains "Number"
+                            if (meterLabelLine.Contains("Number"))
                             {
-                                var line = extractedText[i];
-                                // Check if the line contains "Previous Reading" which indicates the presence of the meter number
-                                if (line.Contains("Previous Reading"))
+                                // Use a refined regex pattern to match the meter number exactly
+                                string meterNumberPattern = @"\b(\d+)(\/\d+)?\b";
+                                var match = Regex.Match(meterNumberLine, meterNumberPattern, RegexOptions.IgnoreCase);
+
+                                if (match.Success)
                                 {
-                                    // Check if the next line exists
-                                    if (i + 1 < extractedText.Count)
-                                    {
-                                        // Get the next line which contains the multiplier
-                                        var nextLine = extractedText[i + 1].Trim();
-
-                                        // Split the next line at ':' to separate the meter number from other details
-                                        var parts = nextLine.Split(':');
-
-                                        if (parts.Length > 1)
-                                        {
-                                            // Assuming the first part before ':' is the meter number and the second part contains the multiplier
-                                            var potentialMultiplier = parts[1].Split(' ').FirstOrDefault();
-
-                                            if (int.TryParse(potentialMultiplier, out var numericMultiplier))
-                                            {
-                                                multiplier = numericMultiplier.ToString();
-                                            }
-                                        }
-                                    }
-                                    // Break the loop after finding and processing the line with "Previous Reading"
-                                    break;
+                                    multiplier = match.Groups[2].Value; // Get only the first capturing group, excluding "/1"
+                                    multiplier = multiplier.Replace("/", "");
                                 }
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+
+
+
+
+
+
+
+
+
+            var previousReading = string.Empty;
+
+            chargeType = "Electricity Charges"; // Define the charge type you're interested in
+            isChargeTypeFound = false;
+
+            for (int i = 0; i < extractedText.Count; i++)
+            {
+                var line = extractedText[i];
+
+                // Check if the line contains the charge type
+                if (line.Contains(chargeType))
+                {
+                    isChargeTypeFound = true;
+                }
+                else if (isChargeTypeFound)
+                {
+                    // Look for the line that contains "Previous"
+                    if (line.Contains("Previous"))
+                    {
+                        // Ensure that the next lines are within bounds
+                        if (i + 2 < extractedText.Count)
+                        {
+                            var meterNumberLine = extractedText[i + 2]; // The line containing meter readings
+                            string meterNumberPattern = @"\b(\d+)\b";
+
+                            // Find all matches on the line
+                            var matches = Regex.Matches(meterNumberLine, meterNumberPattern, RegexOptions.IgnoreCase);
+
+                            if (matches.Count > 0)
+                            {
+                                // Assume the first match is the previous reading
+                                previousReading = matches[2].Value;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+
+
+
+            var currentReading = string.Empty;
+
+            chargeType = "Electricity Charges"; // Define the charge type you're interested in
+            isChargeTypeFound = false;
+
+            for (int i = 0; i < extractedText.Count; i++)
+            {
+                var line = extractedText[i];
+
+                // Check if the line contains the charge type
+                if (line.Contains(chargeType))
+                {
+                    isChargeTypeFound = true;
+                }
+                else if (isChargeTypeFound)
+                {
+                    // Look for the line that contains "Previous"
+                    if (line.Contains("Current"))
+                    {
+                        // Ensure that the next lines are within bounds
+                        if (i + 2 < extractedText.Count)
+                        {
+                            var meterNumberLine = extractedText[i + 2]; // The line containing meter readings
+                            string meterNumberPattern = @"\b(\d+)\b";
+
+                            // Find all matches on the line
+                            var matches = Regex.Matches(meterNumberLine, meterNumberPattern, RegexOptions.IgnoreCase);
+
+                            if (matches.Count > 0)
+                            {
+                                // Assume the first match is the previous reading
+                                currentReading = matches[3].Value;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+
+
+
+
+            var rate = string.Empty;
+            chargeType = "Electricity Charges"; // Define the charge type you're interested in
+            isChargeTypeFound = false;
+
+            for (int i = 0; i < extractedText.Count; i++)
+            {
+                var line = extractedText[i];
+
+                // Check if the line contains the charge type
+                if (line.Contains(chargeType))
+                {
+                    isChargeTypeFound = true;
+                }
+                else if (isChargeTypeFound)
+                {
+                    // Look for the line that contains "Previous"
+                    if (line.Contains("Previous"))
+                    {
+                        // Ensure that the next lines are within bounds
+                        if (i + 2 < extractedText.Count)
+                        {
+                            
+                            var meterNumberLine = extractedText[i + 2]; // The line with "Anytime"
+
+                                // Extract the rate
+                                string ratePattern = @"\b(\d{1,2}\.\d{3})c\b"; // Pattern to match the rate, e.g., "19.999c"
+                                var rateMatch = Regex.Match(meterNumberLine, ratePattern);
+
+                                if (rateMatch.Success)
+                                {
+                                     rate = rateMatch.Groups[1].Value;
+                                }
+
+                                break; // Exit the loop after extracting the rate
+                            
+                        }
+                    }
+                }
+            }
+
+
+            var quantity = string.Empty;
+            chargeType = "Electricity Charges"; // Define the charge type you're interested in
+            isChargeTypeFound = false;
+
+            for (int i = 0; i < extractedText.Count; i++)
+            {
+                var line = extractedText[i];
+
+                // Check if the line contains the charge type
+                if (line.Contains(chargeType))
+                {
+                    isChargeTypeFound = true;
+                }
+                else if (isChargeTypeFound)
+                {
+                    // Look for the line that contains "Previous"
+                    if (line.Contains("Previous"))
+                    {
+                        // Ensure that the next lines are within bounds
+                        if (i + 2 < extractedText.Count)
+                        {
+                            var meterNumberLine = extractedText[i + 2]; // The line with "Anytime"
+
+                            // Extract the quantity (e.g., "2326 kWh")
+                            string quantityPattern = @"\b(\d+)\s*kWh\b"; // Pattern to match the quantity, e.g., "2326 kWh"
+                            var quantityMatch = Regex.Match(meterNumberLine, quantityPattern);
+
+                            if (quantityMatch.Success)
+                            {
+                                quantity = quantityMatch.Groups[1].Value; // Fetch the quantity value
                             }
 
+                            break; // Exit the loop after extracting the quantity
+                        }
+                    }
+                }
+            }
 
 
+            var total = string.Empty;
+            chargeType = "Electricity Charges"; // Define the charge type you're interested in
+            isChargeTypeFound = false;
 
+            for (int i = 0; i < extractedText.Count; i++)
+            {
+                var line = extractedText[i];
 
+                // Check if the line contains the charge type
+                if (line.Contains(chargeType))
+                {
+                    isChargeTypeFound = true;
+                }
+                else if (isChargeTypeFound)
+                {
+                    // Look for the line that contains "Previous"
+                    if (line.Contains("Previous"))
+                    {
+                        // Ensure that the next lines are within bounds
+                        if (i + 2 < extractedText.Count)
+                        {
+                            var meterNumberLine = extractedText[i + 2]; // The line with "Anytime"
 
+                            // Extract the total amount
+                            string totalPattern = @"\$\d+(\.\d{2})?"; // Pattern to match the total amount, e.g., "$465.18"
+                            var totalMatch = Regex.Match(meterNumberLine, totalPattern);
 
-
-
-                            var previousReading = string.Empty;
-
-                            // Loop through each line in the extracted text with an index
-                            for (int i = 0; i < extractedText.Count; i++)
+                            if (totalMatch.Success)
                             {
-                                var line = extractedText[i];
-
-                                // Check if the line contains "Previous Reading" to locate the relevant line
-                                if (line.Contains("Previous Reading"))
-                                {
-                                    // Check if the next line exists
-                                    if (i + 1 < extractedText.Count)
-                                    {
-                                        // Get the next line which contains the meter details
-                                        var meterLine = extractedText[i + 1].Trim();
-
-                                        // Split the meter line to isolate the previous reading
-                                        var parts = meterLine.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-
-                                        // Assuming the previous reading is the third item in the line (based on the provided format)
-                                        if (parts.Length > 2)
-                                        {
-                                            previousReading = parts[2].Trim();
-                                        }
-                                    }
-                                    // Break the loop after finding and processing the line with "Previous Reading"
-                                    break;
-                                }
+                                total = totalMatch.Value;
+                                total = total.Replace("$", "");
                             }
 
-
-
-                            var currentReading = string.Empty;
-
-                            // Loop through each line in the extracted text with an index
-                            for (int i = 0; i < extractedText.Count; i++)
-                            {
-                                var line = extractedText[i];
-
-                                // Check if the line contains "Previous Reading" to locate the relevant line
-                                if (line.Contains("Previous Reading"))
-                                {
-                                    // Check if the next line exists
-                                    if (i + 1 < extractedText.Count)
-                                    {
-                                        // Get the next line which contains the meter details
-                                        var meterLine = extractedText[i + 1].Trim();
-
-                                        // Split the meter line to isolate the previous reading
-                                        var parts = meterLine.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-
-                                        // Assuming the previous reading is the third item in the line (based on the provided format)
-                                        if (parts.Length > 3)
-                                        {
-                                            currentReading = parts[3].Trim();
-                                        }
-                                    }
-                                    // Break the loop after finding and processing the line with "Previous Reading"
-                                    break;
-                                }
-                            }
-
-
-
-                            var rate = string.Empty;
-
-                            // Loop through each line in the extracted text with an index
-                            for (int i = 0; i < extractedText.Count; i++)
-                            {
-                                var line = extractedText[i];
-
-                                // Check if the line contains "Previous Reading" to locate the relevant line
-                                if (line.Contains("BUSINESS EVERYDAY"))
-                                {
-                                    // Check if the next line exists
-                                    if (i + 1 < extractedText.Count)
-                                    {
-                                        // Get the next line which contains the meter details
-                                        var meterLine = extractedText[i + 1].Trim();
-
-                                        // Split the meter line to isolate the previous reading
-                                        var parts = meterLine.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-
-                                        // Assuming the previous reading is the third item in the line (based on the provided format)
-                                        if (parts.Length > 7)
-                                        {
-                                            rate = parts[7].Trim();
-                                        }
-                                    }
-                                    // Break the loop after finding and processing the line with "Previous Reading"
-                                    break;
-                                }
-                            }
-
-
-                            var quantity = string.Empty;
-                            string quantityPattern = @"(\d+\.?\d*)\s*(kWh)";
-
-                            foreach (var line in extractedText)
-                            {
-                                // Match quantity
-                                var quantityMatch = Regex.Match(line, quantityPattern, RegexOptions.IgnoreCase);
-                                if (quantityMatch.Success)
-                                {
-                                    quantity = quantityMatch.Groups[1].Value;
-                                    break;
-                                }
-
-                            }
-
-
-                            var total = string.Empty;
-
-                            // Loop through each line in the extracted text with an index
-                            for (int i = 0; i < extractedText.Count; i++)
-                            {
-                                var line = extractedText[i];
-
-                                // Check if the line contains a keyword or pattern related to the total amount
-                                if (line.Contains("BUSINESS EVERYDAY"))
-                                {
-                                    // Check if the next line exists
-                                    if (i + 1 < extractedText.Count)
-                                    {
-                                        // Get the next line which contains the details including the total amount
-                                        var detailsLine = extractedText[i + 1].Trim();
-
-                                        // Split the line to isolate different parts
-                                        var parts = detailsLine.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-
-                                        // Assuming the total amount is the last item in the line
-                                        if (parts.Length > 0)
-                                        {
-                                            // Extract the total amount part (it may include the $ symbol)
-                                            var amountPart = parts[parts.Length - 1].Trim();
-
-                                            // Remove the $ symbol if present
-                                            total = amountPart.Replace("$", string.Empty).Trim();
-                                        }
-                                    }
-                                    // Break the loop after finding and processing the line with the relevant details
-                                    break;
-                                }
-                            }
+                            break; // Exit the loop after extracting the total amount
+                        }
+                    }
+                }
+            }
 
 
 
@@ -830,7 +905,7 @@ namespace DataExtraction.Library.Mappers.NovaMappers.NovaElectricityAndGasMapper
 
 
 
-                            var billMetadata = new BillMetadata
+            var billMetadata = new BillMetadata
                             {
                                 //BillIdentifier = billIdentifier,
                                 AccountNumber = accountNumber,
@@ -849,6 +924,7 @@ namespace DataExtraction.Library.Mappers.NovaMappers.NovaElectricityAndGasMapper
                     new ICP
                     {
                 ICPCode = icpCode,
+                ServiceDescription = serviceDescription,
                 BillingAddress = billingAddress,
                 BillingPeriod = billingPeriod,
                 ReadStartDate = readStartDate,
@@ -867,6 +943,7 @@ namespace DataExtraction.Library.Mappers.NovaMappers.NovaElectricityAndGasMapper
                    new Type
                    {
                 TypeName = typeName,
+                Multiplier = multiplier,
                 PreviousReading = previousReading,
                 CurrentReading = currentReading,
                 Rate = rate,
