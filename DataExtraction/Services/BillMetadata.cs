@@ -3,6 +3,7 @@
 public class BillMetadata
 {
     // Global fields
+    public string Supplier { get; set; }
     public string AccountNumber { get; set; }
     public string InvoiceNumber { get; set; }
     public string IssueDate { get; set; }
@@ -22,6 +23,7 @@ public class BillMetadata
 
 public class ICP
 {
+    public string UtilityType { get; set; }
     public string ICPCode { get; set; }
     public string ServiceDescription { get; set; }
     public string BillingAddress { get; set; }

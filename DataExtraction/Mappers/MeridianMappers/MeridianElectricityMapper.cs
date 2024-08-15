@@ -30,8 +30,8 @@ namespace DataExtraction.Library.Mappers.MeridianMappers
             string combinedText = string.Join(Environment.NewLine, extractedText);
 
             //var country = Country.AU.ToString();
-            //var commodity = Commodity.Electricity.ToString();
-            //var retailerShortName = RetailerShortName.Suncorp.ToString();
+            var utilityType = UtilityType.Electricity.ToString();
+            var supplier = Supplier.Meridian.ToString();
 
 
 
@@ -139,38 +139,53 @@ namespace DataExtraction.Library.Mappers.MeridianMappers
 
 
 
+            ////Aspose.PDF issueDate
+            var datePattern = @"(\d{1,2}\s[A-Za-z]+\s\d{4})";
+            var issueDate = string.Empty;
 
-
-
-
-
-
-
-            var billingPeriod = string.Empty;
-            var billDetailsIndex = extractedText.FindIndex(s => s.Contains("Your bill details"));
-
-            if (billDetailsIndex != -1 && billDetailsIndex + 1 < extractedText.Count)
+            foreach (var line in extractedText)
             {
-                var dateRangeLine = extractedText[billDetailsIndex + 1].Trim();
-
-                // Use regex to match the date range pattern
-                var regex = new Regex(@"(\d{1,2} \w+ \d{4}) to (\d{1,2} \w+ \d{4})");
-                var match = regex.Match(dateRangeLine);
-
+                var match = Regex.Match(line, datePattern);
                 if (match.Success)
                 {
-                    var startDateStr = match.Groups[1].Value;
-                    var endDateStr = match.Groups[2].Value;
-
-                    if (DateTime.TryParseExact(startDateStr, "d MMMM yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var startDate) &&
-                        DateTime.TryParseExact(endDateStr, "d MMMM yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var endDate))
+                    string dateStr = match.Groups[1].Value;
+                    if (DateTime.TryParseExact(dateStr, "dd/MM/yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsedDate))
                     {
-                        var startFormatted = startDate.ToString("dd/MM/yyyy");
-                        var endFormatted = endDate.ToString("dd/MM/yyyy");
-                        billingPeriod = $"{startFormatted} to {endFormatted}";
+                        issueDate = parsedDate.ToString("dd/MM/yyyy");
+                        break;
                     }
                 }
             }
+
+
+
+
+
+
+
+
+
+
+
+            ////Aspose.PDF dueDate
+            var dueDate = string.Empty;
+            if (extractedText.Any(s => s.Contains("Due Date:") || s.Contains("Due")))
+            {
+                // Find the text line containing "Due Date:" or "Due"
+                var dueDateText = extractedText.LastOrDefault(s => s.Contains("Due Date:") || s.Contains("Due"));
+
+                // Extract the part of the text after "Due" and trim any whitespace
+                var datePart = dueDateText.Split("Due").Last().Trim();
+
+                // Parse the date string into a DateTime object
+                if (DateTime.TryParse(datePart, out DateTime parsedDate))
+                {
+                    // Format the date as dd:MM:yyyy
+                    dueDate = parsedDate.ToString("dd:MM:yyyy");
+                }
+            }
+
+
 
 
 
@@ -196,13 +211,12 @@ namespace DataExtraction.Library.Mappers.MeridianMappers
                     var parts = line.Split(new[] { "ICP" }, StringSplitOptions.None);
                     if (parts.Length > 0)
                     {
-                        // Trim the part before "ICP" to get the service description
+                        // The service description should be the part before "ICP"
                         serviceDescription = parts[0].Trim();
                     }
                     break; // Exit loop after finding and processing the description
                 }
             }
-
 
 
 
@@ -459,12 +473,40 @@ namespace DataExtraction.Library.Mappers.MeridianMappers
 
 
 
+            var billingPeriod = string.Empty;
+            var billDetailsIndex = extractedText.FindIndex(s => s.Contains("Your bill details"));
+
+            if (billDetailsIndex != -1 && billDetailsIndex + 1 < extractedText.Count)
+            {
+                var dateRangeLine = extractedText[billDetailsIndex + 1].Trim();
+
+                // Use regex to match the date range pattern
+                var regex = new Regex(@"(\d{1,2} \w+ \d{4}) to (\d{1,2} \w+ \d{4})");
+                var match = regex.Match(dateRangeLine);
+
+                if (match.Success)
+                {
+                    var startDateStr = match.Groups[1].Value;
+                    var endDateStr = match.Groups[2].Value;
+
+                    if (DateTime.TryParseExact(startDateStr, "d MMMM yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var startDate) &&
+                        DateTime.TryParseExact(endDateStr, "d MMMM yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var endDate))
+                    {
+                        var startFormatted = startDate.ToString("dd/MM/yyyy");
+                        var endFormatted = endDate.ToString("dd/MM/yyyy");
+                        billingPeriod = $"{startFormatted} to {endFormatted}";
+                    }
+                }
+            }
+
+
+
 
 
 
 
             //Aspose PeriodFrom
-            var dateRangePattern = @"(\d{1,2}\s[A-Za-z]+\s\d{4})\s*to\s*(\d{1,2}\s[A-Za-z]+\s\d{4})";
+            var dateRangePattern = @"(\d{1,2} \w+ \d{4}) to (\d{1,2} \w+ \d{4})";
             var readStartDate = string.Empty;
 
             foreach (var line in extractedText)
@@ -474,9 +516,9 @@ namespace DataExtraction.Library.Mappers.MeridianMappers
                 {
                     string startDateStr = match.Groups[1].Value;
 
-                    if (DateTime.TryParseExact(startDateStr, "dd MMM yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsedDate))
+                    if (DateTime.TryParseExact(startDateStr, "d MMMM yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var startDate))
                     {
-                        readStartDate = parsedDate.ToString("dd/MM/yyyy");
+                        readStartDate = startDate.ToString("dd/MM/yyyy");
                     }
                     break;
                 }
@@ -507,9 +549,9 @@ namespace DataExtraction.Library.Mappers.MeridianMappers
                 if (match.Success)
                 {
                     string endDateStr = match.Groups[2].Value;
-                    if (DateTime.TryParseExact(endDateStr, "dd MMMM yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsedDate))
+                    if (DateTime.TryParseExact(endDateStr, "d MMMM yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var endDate))
                     {
-                        readEndDate = parsedDate.ToString("dd/MM/yyyy");
+                        readEndDate = endDate.ToString("dd/MM/yyyy");
                     }
                     break;
                 }
@@ -643,52 +685,6 @@ namespace DataExtraction.Library.Mappers.MeridianMappers
 
 
 
-            ////Aspose.PDF issueDate
-            var datePattern = @"(\d{1,2}\s[A-Za-z]+\s\d{4})";
-            var issueDate = string.Empty;
-
-            foreach (var line in extractedText)
-            {
-                var match = Regex.Match(line, datePattern);
-                if (match.Success)
-                {
-                    string dateStr = match.Groups[1].Value;
-                    if (DateTime.TryParseExact(dateStr, "dd/MM/yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsedDate))
-                    {
-                        issueDate = parsedDate.ToString("dd/MM/yyyy");
-                        break;
-                    }
-                }
-            }
-
-
-
-
-
-
-
-
-
-
-
-            ////Aspose.PDF dueDate
-            var dueDate = string.Empty;
-            if (extractedText.Any(s => s.Contains("Due Date:") || s.Contains("Due")))
-            {
-                var dueDateText = extractedText.LastOrDefault(s => s.Contains("Due Date:") || s.Contains("Due"));
-                dueDate = Convert.ToString(dueDateText.Split("Due").Last().Trim());
-            }
-
-
-
-
-
-
-
-
-
-
-
 
 
             //METER NUMBER
@@ -743,13 +739,14 @@ namespace DataExtraction.Library.Mappers.MeridianMappers
             for (int i = 0; i < extractedText.Count; i++)
             {
                 var line = extractedText[i];
+
                 // Check if the line contains "Previous Reading" which indicates the presence of the meter number
                 if (line.Contains("Previous Reading"))
                 {
                     // Check if the next line exists
                     if (i + 1 < extractedText.Count)
                     {
-                        // Get the next line which contains the multiplier
+                        // Get the next line which contains the meter number and multiplier
                         var nextLine = extractedText[i + 1].Trim();
 
                         // Split the next line at ':' to separate the meter number from other details
@@ -757,9 +754,10 @@ namespace DataExtraction.Library.Mappers.MeridianMappers
 
                         if (parts.Length > 1)
                         {
-                            // Assuming the first part before ':' is the meter number and the second part contains the multiplier
-                            var potentialMultiplier = parts[1].Split(' ').FirstOrDefault();
+                            // The multiplier is part of the text after the first ':', so we need to split it again by spaces
+                            var potentialMultiplier = parts[1].Trim().Split(' ').FirstOrDefault();
 
+                            // Check if the extracted part is numeric, which would indicate it's the multiplier
                             if (int.TryParse(potentialMultiplier, out var numericMultiplier))
                             {
                                 multiplier = numericMultiplier.ToString();
@@ -1037,6 +1035,7 @@ namespace DataExtraction.Library.Mappers.MeridianMappers
             var billMetadata = new BillMetadata
             {
                 //BillIdentifier = billIdentifier,
+                Supplier = supplier,
                 AccountNumber = accountNumber,
                 InvoiceNumber = invoiceNumber,
                 IssueDate = issueDate,
@@ -1052,7 +1051,9 @@ namespace DataExtraction.Library.Mappers.MeridianMappers
                 {
                     new ICP
                     {
+                UtilityType = utilityType,
                 ICPCode = icp,
+                ServiceDescription = serviceDescription,
                 BillingAddress = billingAddress,
                 BillingPeriod = billingPeriod,
                 ReadStartDate = readStartDate,
@@ -1071,6 +1072,7 @@ namespace DataExtraction.Library.Mappers.MeridianMappers
                    new Type
                    {
                 TypeName = type,
+                Multiplier = multiplier,
                 PreviousReading = previousReading,
                 CurrentReading = currentReading,
                 Rate = rate,

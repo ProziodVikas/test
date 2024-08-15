@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Drawing.Drawing2D;
+using System.Dynamic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -10,6 +11,8 @@ using System.Threading.Tasks.Dataflow;
 using Aspose.Pdf.AI;
 using Aspose.Pdf.Drawing;
 using Aspose.Pdf.Operators;
+using CsvHelper.Configuration;
+using CsvHelper;
 using DataExtraction.Library.Enums;
 using DataExtraction.Library.Interfaces;
 using DataExtraction.Library.Services;
@@ -301,185 +304,304 @@ namespace DataExtraction.Library.Mappers.NovaMappers.NovaElectricityAndGasMapper
 
 
 
+            //var icpCode = string.Empty;
+            //var charge = extractedText.FindIndex(s => s.Contains("Electricity Charges"));
+            //var nextLine = extractedText[charge + 1];
+            //if (extractedText.Any(s => s.Contains("ICP number: ")))
+            //{
+            //    var icpText = extractedText.FirstOrDefault(s => s.Contains("ICP number: "));
+
+            //    // Extract the part after "ICP number: "
+            //    var icpPart = icpText.Split(new[] { "ICP number: " }, StringSplitOptions.None).Last().Trim();
+
+            //    // Find the first part that is fully numeric
+            //    var icpParts = icpPart.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            //    icpCode = icpParts[0].Split("ICP number: ")[0].Trim();
+
+            //}
 
 
 
-            var icpCode = string.Empty;
-            var charge = extractedText.FindIndex(s => s.Contains("Electricity Charges"));
-            var nextLine = extractedText[charge + 1];
-            if (extractedText.Any(s => s.Contains("ICP number: ")))
-            {
-                var icpText = extractedText.FirstOrDefault(s => s.Contains("ICP number: "));
+            //icpCode = string.Empty;
+            //charge = extractedText.FindIndex(s => s.Contains("Gas Charges"));
+            //nextLine = extractedText[charge + 1];
+            //{
+            //    if (extractedText.Any(s => s.Contains("ICP number: ")))
+            //    {
+            //        var icpText = extractedText.FirstOrDefault(s => s.Contains("ICP number: "));
 
-                // Extract the part after "ICP number: "
-                var icpPart = icpText.Split(new[] { "ICP number: " }, StringSplitOptions.None).Last().Trim();
+            //        // Extract the part after "ICP number: "
+            //        var icpPart = icpText.Split(new[] { "ICP number: " }, StringSplitOptions.None).Last().Trim();
 
-                // Find the first part that is fully numeric
-                var icpParts = icpPart.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-                icpCode = icpParts[0].Split("ICP number: ")[0].Trim();
+            //        // Find the first part that is fully numeric
+            //        var icpParts = icpPart.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            //        icpCode = icpParts[0].Split("ICP number: ")[0].Trim();
 
-            }
-
-
-
-            icpCode = string.Empty;
-            charge = extractedText.FindIndex(s => s.Contains("Gas Charges"));
-            nextLine = extractedText[charge + 1];
-            {
-                if (extractedText.Any(s => s.Contains("ICP number: ")))
-                {
-                    var icpText = extractedText.FirstOrDefault(s => s.Contains("ICP number: "));
-
-                    // Extract the part after "ICP number: "
-                    var icpPart = icpText.Split(new[] { "ICP number: " }, StringSplitOptions.None).Last().Trim();
-
-                    // Find the first part that is fully numeric
-                    var icpParts = icpPart.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-                    icpCode = icpParts[0].Split("ICP number: ")[0].Trim();
-
-                }
-            }
+            //    }
+            //}
 
 
 
             // SERVICE DESCRIPTION
 
 
-            string serviceDescription = string.Empty;
+            //string serviceDescription = string.Empty;
 
-            foreach (var line in extractedText)
+            //foreach (var line in extractedText)
+            //{
+            //    // Check if the line contains the "Supply address" keyword
+            //    if (line.Contains("Supply address:"))
+            //    {
+            //        // Extract the service description after "Supply address:"
+            //        var parts = line.Split(new[] { "Supply address:" }, StringSplitOptions.None);
+            //        if (parts.Length > 1)
+            //        {
+            //            // Trim the extracted service description
+            //            serviceDescription = parts[1].Split("ICP")[0].Trim();
+            //        }
+            //        break; // Exit loop after finding and processing the description
+            //    }
+            //}
+
+
+
+
+
+
+
+
+
+            //string billingAddress = string.Empty;
+            //foreach (var line in extractedText)
+            //{
+            //    // Check if the line contains the "Supply address" keyword
+            //    if (line.Contains("Supply address:"))
+            //    {
+            //        // Extract the service description after "Supply address:"
+            //        var parts = line.Split(new[] { "Supply address:" }, StringSplitOptions.None);
+            //        if (parts.Length > 1)
+            //        {
+            //            // Trim the extracted service description
+            //            billingAddress = parts[1].Split("ICP")[0].Trim();
+            //        }
+            //        break; // Exit loop after finding and processing the description
+            //    }
+            //}
+
+
+
+
+
+
+
+            //var billingPeriod = string.Empty;
+            //var billDetailsIndex = extractedText.FindIndex(s => s.Contains("Billed Period: "));
+
+            //if (billDetailsIndex != -1)
+            //{
+            //    // Adjust to access the correct line with the billing period details
+            //    var dateRangeLine = extractedText[billDetailsIndex].Trim();
+
+            //    // Split the line by the "Billed Period: " prefix
+            //    var billingPeriodPart = dateRangeLine.Split(new[] { "Billed Period: " }, StringSplitOptions.None).Last().Trim();
+
+            //    // Split the resulting string by " to " to get the start and end dates
+            //    var dateParts = billingPeriodPart.Split(new[] { " to " }, StringSplitOptions.None);
+
+            //    if (dateParts.Length == 2)
+            //    {
+            //        var startDateString = dateParts[0].Trim();
+            //        var endDateString = dateParts[1].Trim();
+            //        var endDateStringClean = endDateString.Split(' ')[0].Trim();
+            //        if (DateTime.TryParseExact(startDateString, "dd/MM/yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var startDate) &&
+            //            DateTime.TryParseExact(endDateStringClean, "dd/MM/yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var endDate))
+            //        {
+            //            var startFormatted = startDate.ToString("dd/MM/yyyy");
+            //            var endFormatted = endDate.ToString("dd/MM/yyyy");
+            //            billingPeriod = $"{startFormatted} to {endFormatted}";
+            //        }
+            //    }
+            //}
+
+
+
+
+            //var readStartDate = string.Empty;
+            //billDetailsIndex = extractedText.FindIndex(s => s.Contains("Billed Period: "));
+
+            //if (billDetailsIndex != -1)
+            //{
+            //    // Adjust to access the correct line with the billing period details
+            //    var dateRangeLine = extractedText[billDetailsIndex].Trim();
+
+            //    // Split the line by the "Billed Period: " prefix
+            //    var readStartDatePart = dateRangeLine.Split(new[] { "Billed Period: " }, StringSplitOptions.None).Last().Trim();
+
+            //    // Split the resulting string by " to " to get the start and end dates
+            //    var dateParts = readStartDatePart.Split(new[] { " to " }, StringSplitOptions.None);
+
+            //    if (dateParts.Length == 2)
+            //    {
+            //        var startDateString = dateParts[0].Trim();
+            //        //var endDateString = dateParts[1].Trim();
+            //        //var endDateStringClean = endDateString.Split(' ')[0].Trim();
+            //        if (DateTime.TryParseExact(startDateString, "dd/MM/yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var startDate))
+            //        {
+            //            var startFormatted = startDate.ToString("dd/MM/yyyy");
+            //            readStartDate = $"{startFormatted}";
+            //        }
+            //    }
+            //}
+
+
+            //var readEndDate = string.Empty;
+            //billDetailsIndex = extractedText.FindIndex(s => s.Contains("Billed Period: "));
+
+            //if (billDetailsIndex != -1)
+            //{
+            //    // Adjust to access the correct line with the billing period details
+            //    var dateRangeLine = extractedText[billDetailsIndex].Trim();
+
+            //    // Split the line by the "Billed Period: " prefix
+            //    var readEndDatePart = dateRangeLine.Split(new[] { "Billed Period: " }, StringSplitOptions.None).Last().Trim();
+
+            //    // Split the resulting string by " to " to get the start and end dates
+            //    var dateParts = readEndDatePart.Split(new[] { " to " }, StringSplitOptions.None);
+
+            //    if (dateParts.Length == 2)
+            //    {
+
+            //        var endDateString = dateParts[1].Trim();
+            //        var endDateStringClean = endDateString.Split(' ')[0].Trim();
+            //        if (DateTime.TryParseExact(endDateStringClean, "dd/MM/yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var endDate))
+            //        {
+            //            var endFormatted = endDate.ToString("dd/MM/yyyy");
+            //            readEndDate = $"{endFormatted}";
+            //        }
+            //    }
+            //}
+
+
+            var icps = new List<ICP>();
+
+            void ProcessChargeType(string chargeType)
             {
-                // Check if the line contains the "Supply address" keyword
-                if (line.Contains("Supply address:"))
+                var chargeIndex = extractedText.FindIndex(s => s.Contains(chargeType));
+                if (chargeIndex == -1) return;
+
+                var icpCode = string.Empty;
+                var serviceDescription = string.Empty;
+                var billingAddress = string.Empty;
+                var billingPeriod = string.Empty;
+                var readStartDate = string.Empty;
+                var readEndDate = string.Empty;
+
+                // Extract ICP Code
+                var nextLine = extractedText[chargeIndex + 1];
+                if (nextLine.Contains("ICP number: "))
                 {
-                    // Extract the service description after "Supply address:"
-                    var parts = line.Split(new[] { "Supply address:" }, StringSplitOptions.None);
-                    if (parts.Length > 1)
-                    {
-                        // Trim the extracted service description
-                        serviceDescription = parts[1].Split("ICP")[0].Trim();
-                    }
-                    break; // Exit loop after finding and processing the description
+                    icpCode = ExtractIcpCode(nextLine);
                 }
+
+                // Extract Service Description and Billing Address
+                if (nextLine.Contains("Supply address:"))
+                {
+                    serviceDescription = ExtractAddress(nextLine);
+                    billingAddress = ExtractAddress(nextLine); // Assuming billingAddress is the same as serviceDescription
+                }
+
+                // Extract Billing Period, Start Date, and End Date
+                var periodLineIndex = extractedText.FindIndex(chargeIndex, s => s.Contains("Billed Period: "));
+                if (periodLineIndex != -1)
+                {
+                    var periodLine = extractedText[periodLineIndex];
+                    billingPeriod = ExtractBillingPeriod(periodLine);
+                    readStartDate = ExtractStartDate(periodLine);
+                    readEndDate = ExtractEndDate(periodLine);
+                }
+
+                // Add to list
+                icps.Add(new ICP
+                {
+                    ICPCode = icpCode,
+                    ServiceDescription = serviceDescription,
+                    BillingAddress = billingAddress,
+                    BillingPeriod = billingPeriod,
+                    ReadStartDate = readStartDate,
+                    ReadEndDate = readEndDate
+                });
             }
 
+            // Process both Electricity and Gas Charges
+            ProcessChargeType("Electricity Charges");
+            ProcessChargeType("Gas Charges");
 
+            
 
+        
 
+        static string ExtractIcpCode(string textLine)
+        {
+            var icpPart = textLine.Split(new[] { "ICP number: " }, StringSplitOptions.None).Last().Trim();
+            var icpParts = icpPart.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            return icpParts[0].Trim();
+        }
 
-
-
-
-
-            string billingAddress = string.Empty;
-            foreach (var line in extractedText)
+        static string ExtractAddress(string line)
+        {
+            var parts = line.Split(new[] { "Supply address:" }, StringSplitOptions.None);
+            if (parts.Length > 1)
             {
-                // Check if the line contains the "Supply address" keyword
-                if (line.Contains("Supply address:"))
+                return parts[1].Split("ICP")[0].Trim();
+            }
+            return string.Empty;
+        }
+
+        static string ExtractBillingPeriod(string line)
+        {
+            var billingPeriodPart = line.Split(new[] { "Billed Period: " }, StringSplitOptions.None).Last().Trim();
+            var dateParts = billingPeriodPart.Split(new[] { " to " }, StringSplitOptions.None);
+            if (dateParts.Length == 2)
+            {
+                if (DateTime.TryParseExact(dateParts[0].Trim(), "dd/MM/yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var startDate) &&
+                    DateTime.TryParseExact(dateParts[1].Trim().Split(' ')[0], "dd/MM/yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var endDate))
                 {
-                    // Extract the service description after "Supply address:"
-                    var parts = line.Split(new[] { "Supply address:" }, StringSplitOptions.None);
-                    if (parts.Length > 1)
-                    {
-                        // Trim the extracted service description
-                        billingAddress = parts[1].Split("ICP")[0].Trim();
-                    }
-                    break; // Exit loop after finding and processing the description
+                    return $"{startDate:dd/MM/yyyy} to {endDate:dd/MM/yyyy}";
                 }
             }
+            return string.Empty;
+        }
 
-
-
-
-
-
-
-            var billingPeriod = string.Empty;
-            var billDetailsIndex = extractedText.FindIndex(s => s.Contains("Billed Period: "));
-
-            if (billDetailsIndex != -1)
+        static string ExtractStartDate(string line)
+        {
+            var billingPeriodPart = line.Split(new[] { "Billed Period: " }, StringSplitOptions.None).Last().Trim();
+            var dateParts = billingPeriodPart.Split(new[] { " to " }, StringSplitOptions.None);
+            if (dateParts.Length > 0)
             {
-                // Adjust to access the correct line with the billing period details
-                var dateRangeLine = extractedText[billDetailsIndex].Trim();
-
-                // Split the line by the "Billed Period: " prefix
-                var billingPeriodPart = dateRangeLine.Split(new[] { "Billed Period: " }, StringSplitOptions.None).Last().Trim();
-
-                // Split the resulting string by " to " to get the start and end dates
-                var dateParts = billingPeriodPart.Split(new[] { " to " }, StringSplitOptions.None);
-
-                if (dateParts.Length == 2)
+                if (DateTime.TryParseExact(dateParts[0].Trim(), "dd/MM/yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var startDate))
                 {
-                    var startDateString = dateParts[0].Trim();
-                    var endDateString = dateParts[1].Trim();
-                    var endDateStringClean = endDateString.Split(' ')[0].Trim();
-                    if (DateTime.TryParseExact(startDateString, "dd/MM/yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var startDate) &&
-                        DateTime.TryParseExact(endDateStringClean, "dd/MM/yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var endDate))
-                    {
-                        var startFormatted = startDate.ToString("dd/MM/yyyy");
-                        var endFormatted = endDate.ToString("dd/MM/yyyy");
-                        billingPeriod = $"{startFormatted} to {endFormatted}";
-                    }
+                    return startDate.ToString("dd/MM/yyyy");
                 }
             }
+            return string.Empty;
+        }
 
-
-
-
-            var readStartDate = string.Empty;
-            billDetailsIndex = extractedText.FindIndex(s => s.Contains("Billed Period: "));
-
-            if (billDetailsIndex != -1)
+        static string ExtractEndDate(string line)
+        {
+            var billingPeriodPart = line.Split(new[] { "Billed Period: " }, StringSplitOptions.None).Last().Trim();
+            var dateParts = billingPeriodPart.Split(new[] { " to " }, StringSplitOptions.None);
+            if (dateParts.Length > 1)
             {
-                // Adjust to access the correct line with the billing period details
-                var dateRangeLine = extractedText[billDetailsIndex].Trim();
-
-                // Split the line by the "Billed Period: " prefix
-                var readStartDatePart = dateRangeLine.Split(new[] { "Billed Period: " }, StringSplitOptions.None).Last().Trim();
-
-                // Split the resulting string by " to " to get the start and end dates
-                var dateParts = readStartDatePart.Split(new[] { " to " }, StringSplitOptions.None);
-
-                if (dateParts.Length == 2)
+                var endDateString = dateParts[1].Trim().Split(' ')[0];
+                if (DateTime.TryParseExact(endDateString, "dd/MM/yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var endDate))
                 {
-                    var startDateString = dateParts[0].Trim();
-                    //var endDateString = dateParts[1].Trim();
-                    //var endDateStringClean = endDateString.Split(' ')[0].Trim();
-                    if (DateTime.TryParseExact(startDateString, "dd/MM/yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var startDate))
-                    {
-                        var startFormatted = startDate.ToString("dd/MM/yyyy");
-                        readStartDate = $"{startFormatted}";
-                    }
+                    return endDate.ToString("dd/MM/yyyy");
                 }
             }
+            return string.Empty;
+        }
 
-
-            var readEndDate = string.Empty;
-            billDetailsIndex = extractedText.FindIndex(s => s.Contains("Billed Period: "));
-
-            if (billDetailsIndex != -1)
-            {
-                // Adjust to access the correct line with the billing period details
-                var dateRangeLine = extractedText[billDetailsIndex].Trim();
-
-                // Split the line by the "Billed Period: " prefix
-                var readEndDatePart = dateRangeLine.Split(new[] { "Billed Period: " }, StringSplitOptions.None).Last().Trim();
-
-                // Split the resulting string by " to " to get the start and end dates
-                var dateParts = readEndDatePart.Split(new[] { " to " }, StringSplitOptions.None);
-
-                if (dateParts.Length == 2)
-                {
-
-                    var endDateString = dateParts[1].Trim();
-                    var endDateStringClean = endDateString.Split(' ')[0].Trim();
-                    if (DateTime.TryParseExact(endDateStringClean, "dd/MM/yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var endDate))
-                    {
-                        var endFormatted = endDate.ToString("dd/MM/yyyy");
-                        readEndDate = $"{endFormatted}";
-                    }
-                }
-            }
+    
 
 
 
@@ -487,9 +609,15 @@ namespace DataExtraction.Library.Mappers.NovaMappers.NovaElectricityAndGasMapper
 
 
 
-            //METER NUMBER
 
-            var meterNumber = string.Empty;
+
+
+
+
+
+        //METER NUMBER
+
+        var meterNumber = string.Empty;
             var chargeType = "Electricity Charges"; // Define the charge type you're interested in
             bool isChargeTypeFound = false;
 
@@ -923,12 +1051,12 @@ namespace DataExtraction.Library.Mappers.NovaMappers.NovaElectricityAndGasMapper
                 {
                     new ICP
                     {
-                ICPCode = icpCode,
-                ServiceDescription = serviceDescription,
-                BillingAddress = billingAddress,
-                BillingPeriod = billingPeriod,
-                ReadStartDate = readStartDate,
-                ReadEndDate = readEndDate,
+               //ICPCode = icpCode,
+              //  ServiceDescription = serviceDescription,
+                //BillingAddress = billingAddress,
+                //BillingPeriod = billingPeriod,
+                //ReadStartDate = readStartDate,
+                //ReadEndDate = readEndDate,
                  Meters = new List<Meter>
                  {
                      new Meter
