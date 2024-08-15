@@ -71,7 +71,7 @@ namespace DataExtraction.Library.Services
                             csv.NextRecord();
 
 
-                            csv.WriteField(billMetadata.Supplier);
+                csv.WriteField(billMetadata.Supplier);
                 csv.WriteField(billMetadata.AccountNumber);
                 csv.WriteField(billMetadata.InvoiceNumber);
                 csv.WriteField(billMetadata.IssueDate);

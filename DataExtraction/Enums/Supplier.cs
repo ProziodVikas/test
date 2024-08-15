@@ -1,4 +1,4 @@
 ﻿namespace DataExtraction.Library.Enums
 {
-    public enum Supplier { Agl, Suncorp, Origin, Genesis, Megatel, Meridian, Other}
+    public enum Supplier { Contact, Suncorp, Origin, Genesis, Megatel, Meridian, Other}
 }

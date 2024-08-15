@@ -49,6 +49,9 @@ namespace DataExtraction.Library.Services
                         case "megatel":
                             retailerInstance = new MegatelRetailer();
                             break;
+                        case "contact":
+                            retailerInstance = new ContactRetailer();
+                            break;
                         default:
                             throw new ArgumentException("Invalid retailer name");
                     }

@@ -11,6 +11,7 @@
         StringList.Add("Genesis");
         StringList.Add("Suncorp");
         StringList.Add("Nova");
+        StringList.Add("Contact");
     }
 }
 
