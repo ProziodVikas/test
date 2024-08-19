@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Drawing.Drawing2D;
 using System.Globalization;
+using System.IO.Enumeration;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -18,11 +19,11 @@ namespace DataExtraction.Library.Mappers.MeridianMappers
 {
     public class MeridianElectricityMapper : IMapper
     {
-        private readonly CsvBillMapper _csvBillMapper;
+        private readonly JsonBillMapper _jsonBillMapper;
 
-        public MeridianElectricityMapper(CsvBillMapper csvBillMapper)
+        public MeridianElectricityMapper(JsonBillMapper jsonBillMapper)
         {
-            _csvBillMapper = csvBillMapper;
+            _jsonBillMapper = jsonBillMapper;
         }
 
         public async Task ProcessAsync(string groupedText, List<string> extractedText)
@@ -32,7 +33,7 @@ namespace DataExtraction.Library.Mappers.MeridianMappers
             //var country = Country.AU.ToString();
             var utilityType = UtilityType.Electricity.ToString();
             var supplier = Supplier.Meridian.ToString();
-
+            var billingCurrency = billingCurrency.NSD.ToString();
 
 
 
@@ -1035,57 +1036,49 @@ namespace DataExtraction.Library.Mappers.MeridianMappers
             var billMetadata = new BillMetadata
             {
                 //BillIdentifier = billIdentifier,
-                Supplier = supplier,
-                AccountNumber = accountNumber,
-                InvoiceNumber = invoiceNumber,
-                IssueDate = issueDate,
-                DueDate = dueDate,
-                TotalAmountDue = totalAmountDue,
-                PaymentMethod = paymentMethod,
-                OpeningBalance = openingBalance,
-                PreviousPayment = previousPayment,
-                CustomerServiceContact = customerServiceContact,
-                CurrentBillAmount = currentBillAmount,
+                billingCurrency = billingCurrency,
+                billingAddress = billingAddress,
+                totalAmountDue = totalAmountDue,
+                dueDate = dueDate,
+                customerServiceContact = customerServiceContact,
+                currentBillAmount = currentBillAmount,
+                accountNumber = accountNumber,
+                invoiceNumber = invoiceNumber,
+                invoiceDate = issueDate,
+                fixedChargeTotal = fixedChargeTotal,
+                ICP = icp,
+                billingPeriod = billingPeriod,
+                gst = gst,
+                fixedChargeQuantity = fixedChargeQuantity,
+                fixedChargeRate = fixedChargeRate,
+                paymentMethods = paymentMethod,
+                previousBalance = openingBalance,
+                previousPayment = previousPayment,
+                meterReadEndDate = readEndDate,
+                meterReadStartDate = readStartDate,
 
-                ICPS = new List<ICP>
+
+                metersData = new List<metersData>
                 {
-                    new ICP
+                    new metersData
                     {
-                UtilityType = utilityType,
-                ICPCode = icp,
-                ServiceDescription = serviceDescription,
-                BillingAddress = billingAddress,
-                BillingPeriod = billingPeriod,
-                ReadStartDate = readStartDate,
-                ReadEndDate = readEndDate,
-                 Meters = new List<Meter>
-                 {
-                     new Meter
-                     {
-                          MeterNumber = meterNumber,
-                FixedChargeQuantity = fixedChargeQuantity,
-                FixedChargeRate = fixedChargeRate,
-                FixedChargeTotal = fixedChargeTotal,
-                GST = gst,
-               Types = new List<Type>
-               {
-                   new Type
-                   {
-                TypeName = type,
-                Multiplier = multiplier,
-                PreviousReading = previousReading,
-                CurrentReading = currentReading,
-                Rate = rate,
-                Quantity = quantity,
-                Total = total
+                meterNumber = meterNumber,
+                meterMultiplier = multiplier,
+                type = type,
+                rate = rate,
+                quantity = quantity,
+                total = total,
+                previousReading = previousReading,
+                currentReading = currentReading,
+                    }
                 }
-                   }
-                     }
-                 }
-                    }
-
-                    }
-
+                templateId = templateId,
+                templateVersion = templateVersion,
+                utilityType = utilityType,
+                supplierName = supplier,
+                customerName = customerName,
+                fileName = fileName,
+                fileExtension = fileExtension
 
             };
 
@@ -1125,7 +1118,7 @@ namespace DataExtraction.Library.Mappers.MeridianMappers
             //    Total = total
             //});
 
-            await _csvBillMapper.WriteToCsvAsync(billMetadata);
+            await _jsonBillMapper.WriteToJsonAsync(billMetadata);
         }
     }
 }

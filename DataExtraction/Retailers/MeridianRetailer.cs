@@ -1,6 +1,5 @@
 ﻿using DataExtraction.Library.Interfaces;
 using DataExtraction.Library.Mappers.MeridianMappers;
-using DataExtraction.Library.Services;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -17,14 +16,14 @@ namespace DataExtraction.Library.Retailers
             {
                 if (groupedText.Contains("Electricity") || groupedText.Contains("kWh"))
                 {
-                    // Provide the path where you want to save the CSV file
-                    var csvFilePath = "C:\\pdf\\Result.csv";
+                    // Provide the path where you want to save the JSON file
+                    var jsonFilePath = "C:\\pdf\\Result.json";
 
-                    // Create an instance of CsvBillMapper
-                    var csvBillMapper = new CsvBillMapper(csvFilePath);
+                    // Create an instance of JsonBillMapper
+                    var jsonBillMapper = new JsonBillMapper(jsonFilePath);
 
-                    // Pass the instance of CsvBillMapper to SuncorpElectricityMapper
-                    mapperInstance = new MeridianElectricityMapper(csvBillMapper);
+                    // Pass the instance of JsonBillMapper to MeridianElectricityMapper
+                    mapperInstance = new MeridianElectricityMapper(jsonBillMapper);
 
                     if (mapperInstance != null)
                     {

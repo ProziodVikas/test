@@ -730,45 +730,45 @@ namespace DataExtraction.Library.Mappers.MegatelMappers
             var billMetadata = new BillMetadata
             {
                 //BillIdentifier = billIdentifier,
-                AccountNumber = accountNumber,
-                InvoiceNumber = invoiceNumber,
-                IssueDate = issueDate,
-                DueDate = dueDate,
-                TotalAmountDue = totalAmountDue,
-                PaymentMethod = paymentMethod,
-                OpeningBalance = openingBalance,
-                PreviousPayment = previousPayment,
-                CustomerServiceContact = customerServiceContact,
-                CurrentBillAmount = currentBillAmount,
+                accountNumber = accountNumber,
+                invoiceNumber = invoiceNumber,
+                invoiceDate = issueDate,
+                dueDate = dueDate,
+                totalAmountDue = totalAmountDue,
+                paymentMethod = paymentMethod,
+                openingBalance = openingBalance,
+                previousPayment = previousPayment,
+                customerServiceContact = customerServiceContact,
+                currentBillAmount = currentBillAmount,
                 
                 ICPS = new List<ICP>
                 {
                     new ICP
                     {
                 ICPCode = icp,
-                BillingAddress = billingAddress,
-                BillingPeriod = billingPeriod,
-                ReadStartDate = readStartDate,
-                ReadEndDate = readEndDate,
+                billingAddress = billingAddress,
+                billingPeriod = billingPeriod,
+                meterReadStartDate = readStartDate,
+                meterReadEndDate = readEndDate,
                  Meters = new List<Meter>
                  {
                      new Meter
                      {
-                          MeterNumber = meterNumber,
-                FixedChargeQuantity = fixedChargeQuantity,
-                FixedChargeRate = fixedChargeRate,
-                FixedChargeTotal = fixedChargeTotal,
-                GST = gst,
+                          meterNumber = meterNumber,
+                fixedChargeQuantity = fixedChargeQuantity,
+                fixedChargeRate = fixedChargeRate,
+                fixedChargeTotal = fixedChargeTotal,
+                gst = gst,
                Types = new List<Type>
                {
                    new Type
                    {
-                TypeName = type,
-                PreviousReading = previousReading,
-                CurrentReading = currentReading,
-                Rate = rate,
-                Quantity = quantity,
-                Total = total
+                type = type,
+                previousReading = previousReading,
+                currentReading = currentReading,
+                rate = rate,
+                quantity = quantity,
+                total = total
                 }
                    }
                      }

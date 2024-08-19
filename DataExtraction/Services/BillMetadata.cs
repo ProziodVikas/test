@@ -3,55 +3,45 @@
 public class BillMetadata
 {
     // Global fields
-    public string Supplier { get; set; }
-    public string AccountNumber { get; set; }
-    public string InvoiceNumber { get; set; }
-    public string IssueDate { get; set; }
-    public string DueDate { get; set; }
-    public string NextBillingDate { get; set; }
-    public string TotalAmountDue { get; set; }
-    public string PaymentMethod { get; set; }
-    public string OpeningBalance { get; set; }
-    public string PreviousPayment { get; set; }
-    public string CustomerServiceContact { get; set; }
-    public string CurrentBillAmount { get; set; }
-    public string DiscountAmount { get; set; }
-
-    // ICP Data
-    public List<ICP> ICPS { get; set; } = new List<ICP>();
+    public string billingCurrency { get; set; }
+    public string billingAddress { get; set; }
+    public string totalAmountDue { get; set; }
+    public string dueDate { get; set; }
+    public string nextBillingDate { get; set; }
+    public string customerServiceContact { get; set; }
+    public string currentBillAmount { get; set; }
+    public string accountNumber { get; set; }
+    public string invoiceNumber { get; set; }
+    public string invoiceDate { get; set; }
+    public string fixedChargeTotal { get; set; }
+    public string ICP { get; set; }
+    public string billingPeriod { get; set; }
+    public string gst { get; set; }
+    public string fixedChargeQuantity { get; set; }
+    public string fixedChargeRate { get; set; }
+    public string paymentMethods { get; set; }
+    public string previousBalance { get; set; }
+    public string previousPayment { get; set; }
+    public string meterReadEndDate { get; set; }
+    public string meterReadStartDate { get; set; }
+    public List<metersData> metersData { get; set; } = new List<metersData>();
+    public string templateId { get; set; }
+    public string templateVersion { get; set; }
+    public string utilityType { get; set; }
+    public string supplierName { get; set; }
+    public string customerName { get; set; }
+    public string fileName { get; set; }
+    public string fileExtension { get; set; }
 }
 
-public class ICP
+public class metersData
 {
-    public string UtilityType { get; set; }
-    public string ICPCode { get; set; }
-    public string ServiceDescription { get; set; }
-    public string BillingAddress { get; set; }
-    public string BillingPeriod { get; set; }
-    public string ReadStartDate { get; set; }
-    public string ReadEndDate { get; set; }
-    public List<Meter> Meters { get; set; } = new List<Meter>();
-
+    public string meterNumber { get; set; }
+    public string meterMultiplier { get; set; }
+    public string type { get; set; }
+    public string rate { get; set; }
+    public string quantity { get; set; }
+    public string total { get; set; }
+    public string previousReading { get; set; }
+    public string currentReading { get; set; }
 }
-public class Meter
-{
-    public string MeterNumber { get; set; }
-    public string FixedChargeQuantity { get; set; }
-    public string FixedChargeRate { get; set; }
-    public string FixedChargeTotal { get; set; }
-    public string GST { get; set; }
-    public List<Type> Types { get; set; } = new List<Type>();
-}
-
-public class Type
-{
-    public string TypeName { get; set; }
-    public string Multiplier { get; set; }
-    public string PreviousReading { get; set; }
-    public string CurrentReading { get; set; }
-    public string Rate { get; set; }
-    public string Quantity { get; set; }
-    public string Total { get; set; }
-}
-
-
