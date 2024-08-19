@@ -10,7 +10,7 @@ namespace DataExtraction.Library.Retailers
 {
     public class NovaRetailer : IRetailer
     {
-        public async Task ProcessAsync(string groupedText, List<string> extractedText)
+        public async Task ProcessAsync(string groupedText, List<string> extractedText, string billsFolderPath)
         {
             IMapper mapperInstance = null;
             if (groupedText != null)
@@ -28,7 +28,7 @@ namespace DataExtraction.Library.Retailers
 
                     if (mapperInstance != null)
                     {
-                        await mapperInstance.ProcessAsync(groupedText, extractedText);
+                        await mapperInstance.ProcessAsync(groupedText, extractedText, billsFolderPath);
                     }
                 }
                 else if (groupedText.Contains("Electricity") || groupedText.Contains("Gas") || groupedText.Contains("Water"))
@@ -44,7 +44,7 @@ namespace DataExtraction.Library.Retailers
 
                     if (mapperInstance != null)
                     {
-                        await mapperInstance.ProcessAsync(groupedText, extractedText);
+                        await mapperInstance.ProcessAsync(groupedText, extractedText, billsFolderPath);
                     }
                 }
             }

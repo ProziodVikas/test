@@ -5,7 +5,7 @@ namespace DataExtraction.Library.Services
 {
     public class RetailerSelection : IRetailerSelection
     {
-        public async Task ProcessExtractedTextAsync(List<string> extractedText)
+        public async Task ProcessExtractedTextAsync(List<string> extractedText, string billsFolderPath)
         {
             var selectedRetailer = string.Empty;
             string groupedText = string.Empty;
@@ -56,7 +56,7 @@ namespace DataExtraction.Library.Services
                             throw new ArgumentException("Invalid retailer name");
                     }
 
-                    retailerInstance?.ProcessAsync(groupedText, extractedText);
+                    retailerInstance?.ProcessAsync(groupedText, extractedText, billsFolderPath);
                 }
 
             }

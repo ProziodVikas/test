@@ -21,7 +21,7 @@ namespace DataExtraction.Library.Mappers.MeridianMappers
             await File.WriteAllTextAsync(_jsonFilePath, jsonContent);
         }
 
-        public async Task ProcessAsync(string groupedText, List<string> extractedText)
+        public async Task ProcessAsync(string groupedText, List<string> extractedText, string billsFolderPath)
         {
             // Create an object to hold the data
             var billData = new
@@ -31,10 +31,12 @@ namespace DataExtraction.Library.Mappers.MeridianMappers
             };
 
             // Serialize the object to JSON
-            var jsonContent = JsonConvert.SerializeObject(billData, Formatting.Indented);
+           // var jsonContent = JsonConvert.SerializeObject(billData, Formatting.Indented);
 
-            // Write the JSON content to the file
+            var jsonContent = JsonConvert.SerializeObject(billData, Formatting.Indented);
             await File.WriteAllTextAsync(_jsonFilePath, jsonContent);
+            // Write the JSON content to the file
+           // await File.WriteAllTextAsync(_jsonFilePath, jsonContent);
         }
     }
 }

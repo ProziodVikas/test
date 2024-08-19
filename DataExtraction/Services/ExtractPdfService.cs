@@ -54,7 +54,7 @@ namespace DataExtraction.Library.Services
         //    return extractedText;
         //}
 
-        public async Task<List<string>> ExtractTextFromPdf(string filePath)
+        public async Task<List<string>> ExtractTextFromPdf(string filePath, string billsFolderPath)
         {
             var extractedText = new List<string>();
 
@@ -76,7 +76,7 @@ namespace DataExtraction.Library.Services
             }
 
             // Process the extracted text asynchronously
-            await _retailerSelection.ProcessExtractedTextAsync(extractedText);
+            await _retailerSelection.ProcessExtractedTextAsync(extractedText, billsFolderPath);
             return extractedText;
         }
 

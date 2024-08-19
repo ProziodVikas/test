@@ -9,7 +9,7 @@ namespace DataExtraction.Library.Retailers
 {
     public class MeridianRetailer : IRetailer
     {
-        public async Task ProcessAsync(string groupedText, List<string> extractedText)
+        public async Task ProcessAsync(string groupedText, List<string> extractedText, string billsFolderPath)
         {
             IMapper mapperInstance = null;
             if (groupedText != null)
@@ -21,13 +21,13 @@ namespace DataExtraction.Library.Retailers
 
                     // Create an instance of JsonBillMapper
                     var jsonBillMapper = new JsonBillMapper(jsonFilePath);
-
+                        
                     // Pass the instance of JsonBillMapper to MeridianElectricityMapper
                     mapperInstance = new MeridianElectricityMapper(jsonBillMapper);
 
                     if (mapperInstance != null)
                     {
-                        await mapperInstance.ProcessAsync(groupedText, extractedText);
+                        await mapperInstance.ProcessAsync(groupedText, extractedText, billsFolderPath);
                     }
                 }
             }

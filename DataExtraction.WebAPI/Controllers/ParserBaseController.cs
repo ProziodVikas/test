@@ -1,8 +1,11 @@
-﻿using DataExtraction.Library.Interfaces;
+﻿using Aspose.Pdf.AI;
+using DataExtraction.Library.Enums;
+using DataExtraction.Library.Interfaces;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
@@ -24,7 +27,7 @@ namespace DataExtraction.WebAPI.Controllers
             _extractPdfService = extractPdfService;
         }
 
-        [HttpGet("BillParser")]
+        [HttpPost("BillParser")]
         public async Task<ActionResult> BillParser()
         {
             if (!Directory.Exists(billsFolderPath))
@@ -41,10 +44,11 @@ namespace DataExtraction.WebAPI.Controllers
             foreach (var filePath in files)
             {
                 var fileName = Path.GetFileName(filePath);
-                var extractedText = await _extractPdfService.ExtractTextFromPdf(filePath);
+                var fileExtension = Path.GetFileName(filePath);
+                var extractedText = await _extractPdfService.ExtractTextFromPdf(filePath, billsFolderPath);
 
                 // Map the extracted text to the BillMetadata model
-                var billMetadata = MapExtractedTextToBillMetadata(extractedText);
+                var billMetadata = MapExtractedTextToBillMetadata(extractedText, fileName, fileExtension);
 
                 // Serialize the bill metadata to JSON
                 var json = JsonSerializer.Serialize(billMetadata);
@@ -67,23 +71,38 @@ namespace DataExtraction.WebAPI.Controllers
             return Ok("All bills processed successfully");
         }
 
-        private BillMetadata MapExtractedTextToBillMetadata(List<string> extractedText)
+        private BillMetadata MapExtractedTextToBillMetadata(List<string> extractedText, string fileName, string fileExtension)
         {
             var billMetadata = new BillMetadata
             {
-                supplierName = ExtractFieldValue(extractedText, "Supplier:"),
-                accountNumber = ExtractFieldValue(extractedText, "Account Number:"),
-                invoiceNumber = ExtractFieldValue(extractedText, "Invoice Number:"),
-                invoiceDate = ExtractFieldValue(extractedText, "Issue Date:"),
-                dueDate = ExtractFieldValue(extractedText, "Due Date:"),
-                totalAmountDue = ExtractFieldValue(extractedText, "Total Amount Due:"),
-                paymentMethod = ExtractFieldValue(extractedText, "Payment Method:"),
-                openingBalance = ExtractFieldValue(extractedText, "Opening Balance:"),
-                previousPayment = ExtractFieldValue(extractedText, "Previous Payment:"),
-                customerServiceContact = ExtractFieldValue(extractedText, "Customer Service Contact:"),
-                currentBillAmount = ExtractFieldValue(extractedText, "Current Bill Amount:"),
-                discountAmount = ExtractFieldValue(extractedText, "Discount Amount:"),
-                ICPS = ExtractICPs(extractedText) // Ensure this is correctly populated
+                billingCurrency = ExtractFieldValue(extractedText, "billingCurrency:"),
+                billingAddress = ExtractFieldValue(extractedText, "billingAddress"),
+                totalAmountDue = ConvertToDecimal(ExtractFieldValue(extractedText, "totalAmountDue")),
+                dueDate = ConvertToDate(ExtractFieldValue(extractedText, "dueDate")),
+                customerServiceContact = ExtractFieldValue(extractedText, "customerServiceContact"),
+                currentBillAmount = ConvertToDecimal(ExtractFieldValue(extractedText, "currentBillAmount")),
+                accountNumber = ExtractFieldValue(extractedText, "accountNumber"),
+                invoiceNumber = ExtractFieldValue(extractedText, "invoiceNumber"),
+                invoiceDate = ConvertToDate(ExtractFieldValue(extractedText, "invoiceDate")),
+                fixedChargeTotal = ConvertToDecimal(ExtractFieldValue(extractedText, "fixedChargeTotal")),
+                ICP = ExtractFieldValue(extractedText, "ICP"),
+                billingPeriod = ExtractFieldValue(extractedText, "billingPeriod"),
+                gst = ConvertToDecimal(ExtractFieldValue(extractedText, "gst")),
+                fixedChargeQuantity = ConvertToDecimal(ExtractFieldValue(extractedText, "fixedChargeQuantity")),
+                fixedChargeRate = ConvertToDecimal(ExtractFieldValue(extractedText, "fixedChargeRate")),
+                paymentMethods = ExtractFieldValue(extractedText, "paymentMethods"),
+                previousBalance = ConvertToDecimal(ExtractFieldValue(extractedText, "previousBalance")),
+                previousPayment = ConvertToDecimal(ExtractFieldValue(extractedText, "previousPayment")),
+                meterReadEndDate = ConvertToDate(ExtractFieldValue(extractedText, "meterReadEndDate")),
+                meterReadStartDate = ConvertToDate(ExtractFieldValue(extractedText, "meterReadStartDate")),
+                metersData = ExtractMeters(extractedText),
+                templateId = Guid.NewGuid().ToString(),
+                templateVersion = 1,
+                utilityType = ExtractFieldValue(extractedText, "utilityType"),
+                supplierName = ExtractFieldValue(extractedText, "supplierName"),
+                customerName = ExtractFieldValue(extractedText, "customerName"),
+                fileName = fileName,
+                fileExtension = fileExtension
             };
 
             // Log the bill metadata for debugging
@@ -98,6 +117,25 @@ namespace DataExtraction.WebAPI.Controllers
             return matchingLine != null ? matchingLine.Substring(matchingLine.IndexOf(fieldName) + fieldName.Length).Trim() : string.Empty;
         }
 
+
+        private decimal ConvertToDecimal(string value)
+        {
+            if (decimal.TryParse(value, NumberStyles.Currency, CultureInfo.InvariantCulture, out var result))
+            {
+                return result;
+            }
+            return 0m;
+        }
+
+        private DateTime ConvertToDate(string value)
+        {
+            if (DateTime.TryParseExact(value, "dd/MM/yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var result))
+            {
+                return result;
+            }
+            return default;
+        }
+
         private string ExtractFieldValueFromLine(string line, string fieldName)
         {
             if (line.Contains(fieldName))
@@ -107,42 +145,27 @@ namespace DataExtraction.WebAPI.Controllers
             }
             return string.Empty;
         }
-
-        private List<ICP> ExtractICPs(List<string> lines)
+        private List<metersData> ExtractMeters(List<string> lines)
         {
-            var icps = new List<ICP>();
-
-            // Example parsing logic
-            foreach (var line in lines)
+            var meters = new List<metersData>();
+            foreach (var line in lines.Where(line => line.Contains("meter")))
             {
-                if (line.Contains("ICP"))
-                {
-                    var icp = new ICP
+                var metersData = new metersData
                     {
-                        utilityType = ExtractFieldValueFromLine(line, "UtilityType"),
-                        ICPCode = ExtractFieldValueFromLine(line, "ICPCode"),
-                        serviceDescription = ExtractFieldValueFromLine(line, "ServiceDescription"),
-                        billingAddress = ExtractFieldValueFromLine(line, "BillingAddress"),
-                        billingPeriod = ExtractFieldValueFromLine(line, "BillingPeriod"),
-                        meterReadStartDate = ExtractFieldValueFromLine(line, "ReadStartDate"),
-                        meterReadEndDate = ExtractFieldValueFromLine(line, "ReadEndDate"),
-                        Meters = ExtractMeters(line) // Implement ExtractMeters to parse meters
+
+                        meterNumber = ExtractFieldValueFromLine(line, "meterNumber"),
+                        meterMultiplier = ConvertToDecimal(ExtractFieldValueFromLine(line, "meterMultiplier")),
+                        type = ExtractFieldValueFromLine(line, "type"),
+                        rate = ConvertToDecimal(ExtractFieldValueFromLine(line, "rate")),
+                        quantity = ConvertToDecimal(ExtractFieldValueFromLine(line, "quantity")),
+                        total = ConvertToDecimal(ExtractFieldValueFromLine(line, "total")),
+                        previousReading = ExtractFieldValueFromLine(line, "previousReading"),
+                        currentReading = ExtractFieldValueFromLine(line, "currentReading")
+
                     };
-
-                    icps.Add(icp);
+                    meters.Add(metersData);
                 }
-            }
-
-            return icps;
-        }
-
-        private List<Meter> ExtractMeters(string line)
-        {
-            var meters = new List<Meter>();
-
-            // Example logic to extract meters
-            // Parse meters based on the structure of your lines
-
+            
             return meters;
         }
 

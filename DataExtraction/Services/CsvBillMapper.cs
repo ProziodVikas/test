@@ -1,4 +1,5 @@
 ﻿using CsvHelper;
+using System.Diagnostics.Metrics;
 using System.Globalization;
 using System.IO;
 using System.Threading.Tasks;
@@ -21,106 +22,98 @@ namespace DataExtraction.Library.Services
             {
                 // Write the global fields
                 csv.WriteField("billingCurrency");
-                csv.WriteField("Account Number");
-                csv.WriteField("Invoice Number");
-                csv.WriteField("Issue Date");
-                csv.WriteField("Due Date");
-                csv.WriteField("Next Billing Date");
-                csv.WriteField("Total Amount Due");
-                csv.WriteField("Payment Method");
-                csv.WriteField("Opening Balance");
-                csv.WriteField("Previous Payment");
-                csv.WriteField("Customer Service Contact");
-                csv.WriteField("Current Bill Amount");
-                csv.WriteField("Discount Amount");
-                
-                // Write ICP, Meter, and Type Data
-                foreach (var metersData in billMetadata.ICPS)
-                {
-                    // Write ICP header row
-                    csv.WriteField("UtilityType");
-                    csv.WriteField("ICP");
-                    csv.WriteField("Service Description");
-                    csv.WriteField("Billing Address");
-                    csv.WriteField("Billing Period");
-                    csv.WriteField("Read Start Date");
-                    csv.WriteField("Read End Date");
+                csv.WriteField("billingAddress");
+                csv.WriteField("totalAmountDue");
+                csv.WriteField("dueDate");
+                csv.WriteField("customerServiceContact");
+                csv.WriteField("currentBillAmount");
+                csv.WriteField("accountNumber");
+                csv.WriteField("invoiceNumber");
+                csv.WriteField("invoiceDate");
+                csv.WriteField("fixedChargeTotal");
+                csv.WriteField("ICP");
+                csv.WriteField("billingPeriod");
+                csv.WriteField("gst");
+                csv.WriteField("fixedChargeQuantity");
+                csv.WriteField("fixedChargeRate");
+                csv.WriteField("paymentMethods");
+                csv.WriteField("previousBalance");
+                csv.WriteField("previousPayment");
+                csv.WriteField("meterReadEndDate");
+                csv.WriteField("meterReadStartDate");
+                csv.NextRecord();
 
 
 
-                    foreach (var meter in icp.Meters)
-                    {
-                        // Write Meter header row
-                        csv.WriteField("Meter Number");
-                        csv.WriteField("Fixed Charge Quantity (Days)");
-                        csv.WriteField("Fixed Charge Rate");
-                        csv.WriteField("Fixed Charge Total");
-                        csv.WriteField("GST");
-
-
-                        foreach (var type in meter.Types)
-                        {
-                            // Write Type header row
-                            csv.WriteField("Type");
-                            csv.WriteField("Multiplier");
-                            csv.WriteField("Previous Reading");
-                            csv.WriteField("Current Reading");
-                            csv.WriteField("Rate");
-                            csv.WriteField("Quantity");
-                            csv.WriteField("Total");
-                            csv.NextRecord();
-
-
-                csv.WriteField(billMetadata.supplierName);
+                csv.WriteField(billMetadata.billingCurrency);
+                csv.WriteField(billMetadata.billingAddress);
+                csv.WriteField(billMetadata.totalAmountDue);
+                csv.WriteField(billMetadata.dueDate);
+                csv.WriteField(billMetadata.customerServiceContact);
+                csv.WriteField(billMetadata.currentBillAmount);
                 csv.WriteField(billMetadata.accountNumber);
                 csv.WriteField(billMetadata.invoiceNumber);
                 csv.WriteField(billMetadata.invoiceDate);
-                csv.WriteField(billMetadata.dueDate);
-                csv.WriteField(billMetadata.nextBillingDate);
-                csv.WriteField(billMetadata.totalAmountDue);
+                csv.WriteField(billMetadata.fixedChargeTotal);
+                csv.WriteField(billMetadata.ICP);
+                csv.WriteField(billMetadata.billingPeriod);
+                csv.WriteField(billMetadata.gst);
+                csv.WriteField(billMetadata.fixedChargeQuantity);
+                csv.WriteField(billMetadata.fixedChargeRate);
                 csv.WriteField(billMetadata.paymentMethods);
                 csv.WriteField(billMetadata.previousBalance);
                 csv.WriteField(billMetadata.previousPayment);
-                csv.WriteField(billMetadata.customerServiceContact);
-                csv.WriteField(billMetadata.currentBillAmount);
+                csv.WriteField(billMetadata.meterReadEndDate);
+                csv.WriteField(billMetadata.meterReadStartDate);
+                csv.NextRecord();
 
-               
+                // Write ICP, Meter, and Type Data
+                foreach (var metersData in billMetadata.metersData)
+                {
+                    // Write ICP header row
+                    csv.WriteField("meterNumber");
+                    csv.WriteField("meterMultiplier");
+                    csv.WriteField("type");
+                    csv.WriteField("rate");
+                    csv.WriteField("quantity");
+                    csv.WriteField("total");
+                    csv.WriteField("previousReading");
+                    csv.WriteField("currentReading");
+                    csv.NextRecord();
+
 
                     // Write ICP data
-                    csv.WriteField(icp.utilityType);
-                    csv.WriteField(icp.ICPCode);
-                    csv.WriteField(icp.serviceDescription);
-                    csv.WriteField(icp.billingAddress);
-                    csv.WriteField(icp.billingPeriod);
-                    csv.WriteField(icp.meterReadStartDate);
-                    csv.WriteField(icp.meterReadEndDate);
+                    csv.WriteField(metersData.meterNumber);
+                    csv.WriteField(metersData.meterMultiplier);
+                    csv.WriteField(metersData.type);
+                    csv.WriteField(metersData.rate);
+                    csv.WriteField(metersData.quantity);
+                    csv.WriteField(metersData.total);
+                    csv.WriteField(metersData.previousReading);
+                    csv.WriteField(metersData.currentReading);
+                    csv.NextRecord();
 
-                    // Write Meter and Type Data
-                   
 
-                        // Write Meter data
-                        csv.WriteField(meter.meterNumber);
-                        csv.WriteField(meter.fixedChargeQuantity);
-                        csv.WriteField(meter.fixedChargeRate);
-                        csv.WriteField(meter.fixedChargeTotal);
-                        csv.WriteField(meter.gst);
-
-                        // Write Type Data
-                       
-
-                            // Write Type data
-                            csv.WriteField(type.type);
-                            csv.WriteField(type.meterMultiplier);
-                            csv.WriteField(type.previousReading);
-                            csv.WriteField(type.currentReading);
-                            csv.WriteField(type.rate);
-                            csv.WriteField(type.quantity);
-                            csv.WriteField(type.total);
-                        }
-                    }
-                    csv.NextRecord(); // Add an empty line between ICPs
                 }
+                csv.WriteField("templateId");
+                csv.WriteField("templateVersion");
+                csv.WriteField("utilityType");
+                csv.WriteField("supplierName");
+                csv.WriteField("customerName");
+                csv.WriteField("fileName");
+                csv.WriteField("fileExtension");
+                csv.NextRecord();
+
+                csv.WriteField(billMetadata.templateId);
+                csv.WriteField(billMetadata.templateVersion);
+                csv.WriteField(billMetadata.utilityType);
+                csv.WriteField(billMetadata.supplierName);
+                csv.WriteField(billMetadata.customerName);
+                csv.WriteField(billMetadata.fileName);
+                csv.WriteField(billMetadata.fileExtension);
+                csv.NextRecord();
             }
+            
         }
     }
 }

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Drawing.Drawing2D;
 using System.Globalization;
 using System.IO.Enumeration;
@@ -14,43 +15,61 @@ using DataExtraction.Library.Enums;
 using DataExtraction.Library.Interfaces;
 using DataExtraction.Library.Services;
 using UglyToad.PdfPig.Graphics.Operations.PathPainting;
+using Newtonsoft.Json;
+using System.Net.Http.Json;
 
 namespace DataExtraction.Library.Mappers.MeridianMappers
 {
     public class MeridianElectricityMapper : IMapper
     {
         private readonly JsonBillMapper _jsonBillMapper;
-
+        private readonly string _jsonFilePath;
         public MeridianElectricityMapper(JsonBillMapper jsonBillMapper)
         {
             _jsonBillMapper = jsonBillMapper;
         }
 
-        public async Task ProcessAsync(string groupedText, List<string> extractedText)
+        public async Task ProcessAsync(string groupedText, List<string> extractedText, string billsFolderPath)
         {
             string combinedText = string.Join(Environment.NewLine, extractedText);
 
             //var country = Country.AU.ToString();
             var utilityType = UtilityType.Electricity.ToString();
             var supplier = Supplier.Meridian.ToString();
-            var billingCurrency = billingCurrency.NSD.ToString();
+            var billingCurrency = BillingCurrency.NSD.ToString();
+            var templateId = Guid.NewGuid().ToString();
+            int templateVersion = 1;
 
 
+            string fileName = string.Empty;
+            string fileExtension = string.Empty;
+
+            // Check if the directory exists
+            if (Directory.Exists(billsFolderPath))
+            {
+                // Get the PDF files in the directory
+                var pdfFiles = Directory.GetFiles(billsFolderPath, "*.pdf");
+
+                // Process only the first PDF file found
+                if (pdfFiles.Length > 0)
+                {
+                    var firstFilePath = pdfFiles.First();
+                    fileName = System.IO.Path.GetFileNameWithoutExtension(firstFilePath);
+                    fileExtension = System.IO.Path.GetExtension(firstFilePath);
+                }
+            }
+            else
+            {
+                throw new DirectoryNotFoundException($"The directory '{billsFolderPath}' does not exist.");
+            }
 
 
-
-
-            //var billIdentifier = BillIdentifier.ICP.ToString();
-            //if (extractedText.Any(s => s.Contains("Customer No:")))
-            //{
-            //    var billIdentifierText = extractedText.FirstOrDefault(s => s.Contains("Customer No:"));
-            //    billIdentifier = billIdentifierText.Split(":").Last().Trim();
-            //}
-
-
-
-
-
+            var customerName = string.Empty;
+            if (extractedText.Any(s => s.Contains("Name ")))
+            {
+                var customerNameText = extractedText.FirstOrDefault(s => s.Contains("Name "));
+                customerName = customerNameText.Split("Name ").Last().Trim();
+            }
 
 
 
@@ -87,22 +106,6 @@ namespace DataExtraction.Library.Mappers.MeridianMappers
             }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
             ////Aspose.PDF invoiceNumber
             var invoiceNumber = string.Empty;
             if (extractedText.Any(s => s.Contains("Tax Invoice ")))
@@ -136,13 +139,8 @@ namespace DataExtraction.Library.Mappers.MeridianMappers
 
 
 
-
-
-
-
-            ////Aspose.PDF issueDate
             var datePattern = @"(\d{1,2}\s[A-Za-z]+\s\d{4})";
-            var issueDate = string.Empty;
+            DateTime issueDate = default; // Use DateTime default value to represent an uninitialized date
 
             foreach (var line in extractedText)
             {
@@ -150,9 +148,9 @@ namespace DataExtraction.Library.Mappers.MeridianMappers
                 if (match.Success)
                 {
                     string dateStr = match.Groups[1].Value;
-                    if (DateTime.TryParseExact(dateStr, "dd/MM/yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsedDate))
+                    if (DateTime.TryParseExact(dateStr, "d MMM yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsedDate))
                     {
-                        issueDate = parsedDate.ToString("dd/MM/yyyy");
+                        issueDate = parsedDate; // Assign the parsed date to issueDate
                         break;
                     }
                 }
@@ -160,41 +158,25 @@ namespace DataExtraction.Library.Mappers.MeridianMappers
 
 
 
+            DateTime dueDate = default;
 
-
-
-
-
-
-
-
-            ////Aspose.PDF dueDate
-            var dueDate = string.Empty;
             if (extractedText.Any(s => s.Contains("Due Date:") || s.Contains("Due")))
             {
                 // Find the text line containing "Due Date:" or "Due"
                 var dueDateText = extractedText.LastOrDefault(s => s.Contains("Due Date:") || s.Contains("Due"));
 
-                // Extract the part of the text after "Due" and trim any whitespace
-                var datePart = dueDateText.Split("Due").Last().Trim();
-
-                // Parse the date string into a DateTime object
-                if (DateTime.TryParse(datePart, out DateTime parsedDate))
+                if (dueDateText != null)
                 {
-                    // Format the date as dd:MM:yyyy
-                    dueDate = parsedDate.ToString("dd:MM:yyyy");
+                    // Extract the part of the text after "Due" and trim any whitespace
+                    var datePart = dueDateText.Split("Due").Last().Trim();
+
+                    // Parse the date string into a DateTime object
+                    if (DateTime.TryParse(datePart, out DateTime parsedDate))
+                    {
+                        dueDate = parsedDate; // Assign the parsed DateTime
+                    }
                 }
             }
-
-
-
-
-
-
-
-
-
-
 
 
             // SERVICE DESCRIPTION
@@ -221,23 +203,7 @@ namespace DataExtraction.Library.Mappers.MeridianMappers
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-            string totalAmountDue = string.Empty;
+            string totalAmountDueString = string.Empty;
 
             // Check each line for the phrase "Total amount due"
             foreach (var line in extractedText)
@@ -255,18 +221,19 @@ namespace DataExtraction.Library.Mappers.MeridianMappers
                         int dollarIndex = remainingText.IndexOf('$');
                         if (dollarIndex != -1)
                         {
-                            totalAmountDue = remainingText.Substring(dollarIndex + 1).Trim(); // Skip the dollar sign
+                            totalAmountDueString = remainingText.Substring(dollarIndex + 1).Trim(); // Skip the dollar sign
                             break;
                         }
                     }
                 }
             }
 
-
-
-
-
-
+            // Convert the totalAmountDueString to decimal
+            decimal totalAmountDue = 0m;
+            if (decimal.TryParse(totalAmountDueString, NumberStyles.Currency, CultureInfo.InvariantCulture, out var parsedAmount))
+            {
+                totalAmountDue = parsedAmount;
+            }
 
 
 
@@ -284,22 +251,8 @@ namespace DataExtraction.Library.Mappers.MeridianMappers
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-            var openingBalance = string.Empty;
             string pattern = @"Opening account balance\s*\$([\d,]+\.\d{2})";
+            string openingBalanceString = string.Empty;
 
             // Check if any line contains "Opening account balance"
             if (extractedText.Any(s => s.Contains("Opening account balance")))
@@ -311,8 +264,16 @@ namespace DataExtraction.Library.Mappers.MeridianMappers
                 var match = Regex.Match(openingBalanceText, pattern, RegexOptions.IgnoreCase);
                 if (match.Success)
                 {
-                    openingBalance = match.Groups[1].Value.Replace(",", ""); // Remove comma if present
+                    openingBalanceString = match.Groups[1].Value.Replace(",", ""); // Remove comma if present
                 }
+            }
+
+            // Convert string to decimal
+            decimal openingBalanceDecimal = 0m;
+            if (!decimal.TryParse(openingBalanceString, NumberStyles.Currency, CultureInfo.InvariantCulture, out openingBalanceDecimal))
+            {
+                // Handle the case where parsing fails, if needed
+                Console.WriteLine($"Failed to parse opening balance '{openingBalanceString}' as decimal.");
             }
 
 
@@ -320,12 +281,9 @@ namespace DataExtraction.Library.Mappers.MeridianMappers
 
 
 
-
-
-
-
-
             var previousPayment = string.Empty;
+            decimal previousPaymentDecimal = 0m;
+
             // Updated pattern to match amount with optional comma and dot
             string previouspaymentpattern = @"Account payment\s*\(\s*\$(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)\s*\)";
 
@@ -340,15 +298,19 @@ namespace DataExtraction.Library.Mappers.MeridianMappers
                 if (match.Success)
                 {
                     previousPayment = match.Groups[1].Value; // Extract the amount
+
+                    // Convert to decimal
+                    if (decimal.TryParse(previousPayment, NumberStyles.Currency, CultureInfo.InvariantCulture, out previousPaymentDecimal))
+                    {
+                        // Successfully parsed, previousPaymentDecimal now contains the decimal value
+                    }
+                    else
+                    {
+                        // Handle parsing failure if needed
+                        Console.WriteLine($"Failed to parse previous payment amount '{previousPayment}' as decimal.");
+                    }
                 }
             }
-
-
-
-
-
-
-
 
 
 
@@ -372,17 +334,6 @@ namespace DataExtraction.Library.Mappers.MeridianMappers
                     break; // Stop after finding the first match
                 }
             }
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -424,34 +375,29 @@ namespace DataExtraction.Library.Mappers.MeridianMappers
 
 
 
-
-
-
-
-
             //CURRENT BILLING AMOUNT
 
-            var currentBillAmount = string.Empty;
+            decimal currentBillAmountDecimal = 0m;
 
             if (extractedText.Any(s => s.Contains("Total charges ")))
             {
                 var currentBillAmountText = extractedText.FirstOrDefault(s => s.Contains("Total charges "));
-                // Extract the amount after "Total charges "
-                currentBillAmount = currentBillAmountText.Split("Total charges ").Last().Trim();
+                if (currentBillAmountText != null)
+                {
+                    // Extract the amount after "Total charges "
+                    var amountString = currentBillAmountText.Split("Total charges ").Last().Trim();
 
-                // Remove the '$' symbol from the amount if present
-                currentBillAmount = currentBillAmount.Replace("$", string.Empty).Trim();
+                    // Remove the '$' symbol and any other non-numeric characters if present
+                    amountString = amountString.Replace("$", string.Empty).Trim();
+
+                    // Convert the cleaned string to decimal
+                    if (!decimal.TryParse(amountString, NumberStyles.Currency, CultureInfo.InvariantCulture, out currentBillAmountDecimal))
+                    {
+                        // Handle parsing failure if needed
+                        Console.WriteLine($"Failed to parse amount '{amountString}' as decimal.");
+                    }
+                }
             }
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -506,9 +452,8 @@ namespace DataExtraction.Library.Mappers.MeridianMappers
 
 
 
-            //Aspose PeriodFrom
             var dateRangePattern = @"(\d{1,2} \w+ \d{4}) to (\d{1,2} \w+ \d{4})";
-            var readStartDate = string.Empty;
+            DateTime readStartDate = default;
 
             foreach (var line in extractedText)
             {
@@ -519,7 +464,7 @@ namespace DataExtraction.Library.Mappers.MeridianMappers
 
                     if (DateTime.TryParseExact(startDateStr, "d MMMM yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var startDate))
                     {
-                        readStartDate = startDate.ToString("dd/MM/yyyy");
+                        readStartDate = startDate;
                     }
                     break;
                 }
@@ -529,21 +474,8 @@ namespace DataExtraction.Library.Mappers.MeridianMappers
 
 
 
+            DateTime readEndDate = default; // Initialize as DateTime
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-            var readEndDate = string.Empty;
             foreach (var line in extractedText)
             {
                 var match = Regex.Match(line, dateRangePattern, RegexOptions.IgnoreCase);
@@ -552,7 +484,7 @@ namespace DataExtraction.Library.Mappers.MeridianMappers
                     string endDateStr = match.Groups[2].Value;
                     if (DateTime.TryParseExact(endDateStr, "d MMMM yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var endDate))
                     {
-                        readEndDate = endDate.ToString("dd/MM/yyyy");
+                        readEndDate = endDate; // Assign DateTime value directly
                     }
                     break;
                 }
@@ -561,14 +493,7 @@ namespace DataExtraction.Library.Mappers.MeridianMappers
 
 
 
-
-
-
-
-
-
-
-            string fixedChargeQuantity = string.Empty;
+            string fixedChargeQuantityString = string.Empty;
             string fixedChargeQuantityPattern = @"Daily charge\s*\(\d+\.\d+\s*c\/day\s*x\s*(\d+)\s*days\)";
 
             foreach (var line in extractedText)
@@ -576,20 +501,18 @@ namespace DataExtraction.Library.Mappers.MeridianMappers
                 var match = Regex.Match(line, fixedChargeQuantityPattern, RegexOptions.IgnoreCase);
                 if (match.Success)
                 {
-                    fixedChargeQuantity = match.Groups[1].Value;
+                    fixedChargeQuantityString = match.Groups[1].Value;
                     break;
                 }
             }
 
-
-
-
-
-
-
-
-
-
+            // Convert fixedChargeQuantityString to decimal
+            decimal fixedChargeQuantity = 0m;
+            if (!decimal.TryParse(fixedChargeQuantityString, NumberStyles.Number, CultureInfo.InvariantCulture, out fixedChargeQuantity))
+            {
+                // Handle the case where parsing fails if needed
+                Console.WriteLine($"Failed to parse fixedChargeQuantity '{fixedChargeQuantityString}' as decimal.");
+            }
 
 
 
@@ -597,8 +520,8 @@ namespace DataExtraction.Library.Mappers.MeridianMappers
 
             string fixedChargeRatePattern = @"Daily charge\s*\(([\d\.]+)\s*c/day";
 
-            // Initialize variable for storing the fixed charge rate
-            string fixedChargeRate = string.Empty;
+            // Initialize variable for storing the fixed charge rate as a string
+            string fixedChargeRateString = string.Empty;
 
             // Loop through each line of extracted text
             foreach (var line in extractedText)
@@ -607,19 +530,18 @@ namespace DataExtraction.Library.Mappers.MeridianMappers
                 var fixedChargeRateMatch = Regex.Match(line, fixedChargeRatePattern, RegexOptions.IgnoreCase);
                 if (fixedChargeRateMatch.Success)
                 {
-                    fixedChargeRate = fixedChargeRateMatch.Groups[1].Value;
+                    fixedChargeRateString = fixedChargeRateMatch.Groups[1].Value;
                     break;
                 }
             }
 
-
-
-
-
-
-
-
-
+            // Convert fixed charge rate to decimal
+            decimal fixedChargeRate = 0m;
+            if (!decimal.TryParse(fixedChargeRateString, NumberStyles.Float, CultureInfo.InvariantCulture, out fixedChargeRate))
+            {
+                // Handle the case where parsing fails, if needed
+                Console.WriteLine($"Failed to parse fixed charge rate '{fixedChargeRateString}' as decimal.");
+            }
 
 
 
@@ -627,7 +549,8 @@ namespace DataExtraction.Library.Mappers.MeridianMappers
             string fixedChargeTotalPattern = @"Daily charge\s*\(\d+\.\d+\s*c\/day\s*x\s*\d+\s*days\)\s*\$([\d\.]+)";
 
             // Initialize variable
-            string fixedChargeTotal = string.Empty;
+            string fixedChargeTotalString = string.Empty;
+            decimal fixedChargeTotal = 0m;
 
             // Loop through each line of extracted text
             foreach (var line in extractedText)
@@ -635,17 +558,17 @@ namespace DataExtraction.Library.Mappers.MeridianMappers
                 var fixedChargeTotalMatch = Regex.Match(line, fixedChargeTotalPattern, RegexOptions.IgnoreCase);
                 if (fixedChargeTotalMatch.Success)
                 {
-                    fixedChargeTotal = fixedChargeTotalMatch.Groups[1].Value;
+                    fixedChargeTotalString = fixedChargeTotalMatch.Groups[1].Value;
                     break; // Stop after finding the fixed charge total
                 }
             }
 
-
-
-
-
-
-
+            // Convert the extracted string to decimal
+            if (!decimal.TryParse(fixedChargeTotalString, NumberStyles.Currency, CultureInfo.InvariantCulture, out fixedChargeTotal))
+            {
+                // Handle the case where parsing fails, if needed
+                Console.WriteLine($"Failed to parse fixed charge total '{fixedChargeTotalString}' as decimal.");
+            }
 
 
 
@@ -654,37 +577,25 @@ namespace DataExtraction.Library.Mappers.MeridianMappers
 
 
             string gstPattern = @"GST\s*@\s*\d+%\s*\$([\d\.]+)";
-            string gst = string.Empty;
+            string gstString = string.Empty;
 
             foreach (var line in extractedText)
             {
                 var gstMatch = Regex.Match(line, gstPattern, RegexOptions.IgnoreCase);
                 if (gstMatch.Success)
                 {
-                    gst = gstMatch.Groups[1].Value;
+                    gstString = gstMatch.Groups[1].Value;
                     break;
                 }
             }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+            // Convert GST to decimal
+            decimal gstDecimal = 0m;
+            if (!decimal.TryParse(gstString, NumberStyles.Currency, CultureInfo.InvariantCulture, out gstDecimal))
+            {
+                // Handle the case where parsing fails, if needed
+                Console.WriteLine($"Failed to parse GST '{gstString}' as decimal.");
+            }
 
 
 
@@ -724,17 +635,7 @@ namespace DataExtraction.Library.Mappers.MeridianMappers
 
 
 
-
-
-
-
-
-
-
-
-
-
-            var multiplier = string.Empty;
+            decimal multiplier = 0m;
 
             // Loop through each line in the extracted text with an index
             for (int i = 0; i < extractedText.Count; i++)
@@ -758,10 +659,15 @@ namespace DataExtraction.Library.Mappers.MeridianMappers
                             // The multiplier is part of the text after the first ':', so we need to split it again by spaces
                             var potentialMultiplier = parts[1].Trim().Split(' ').FirstOrDefault();
 
-                            // Check if the extracted part is numeric, which would indicate it's the multiplier
-                            if (int.TryParse(potentialMultiplier, out var numericMultiplier))
+                            // Try to convert the extracted part to decimal
+                            if (decimal.TryParse(potentialMultiplier, NumberStyles.Float, CultureInfo.InvariantCulture, out var numericMultiplier))
                             {
-                                multiplier = numericMultiplier.ToString();
+                                multiplier = numericMultiplier;
+                            }
+                            else
+                            {
+                                // Handle cases where parsing fails, if needed
+                                Console.WriteLine($"Failed to parse multiplier '{potentialMultiplier}' as decimal.");
                             }
                         }
                     }
@@ -851,14 +757,6 @@ namespace DataExtraction.Library.Mappers.MeridianMappers
 
 
 
-
-
-
-
-
-
-
-
             var currentReading = string.Empty;
 
             // Loop through each line in the extracted text with an index
@@ -893,16 +791,14 @@ namespace DataExtraction.Library.Mappers.MeridianMappers
 
 
 
-
-
-            var rate = string.Empty;
+            var rateString = string.Empty;
 
             // Loop through each line in the extracted text with an index
             for (int i = 0; i < extractedText.Count; i++)
             {
                 var line = extractedText[i];
 
-                // Check if the line contains "Previous Reading" to locate the relevant line
+                // Check if the line contains "BUSINESS EVERYDAY" to locate the relevant line
                 if (line.Contains("BUSINESS EVERYDAY"))
                 {
                     // Check if the next line exists
@@ -911,18 +807,26 @@ namespace DataExtraction.Library.Mappers.MeridianMappers
                         // Get the next line which contains the meter details
                         var meterLine = extractedText[i + 1].Trim();
 
-                        // Split the meter line to isolate the previous reading
+                        // Split the meter line to isolate the rate
                         var parts = meterLine.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
 
-                        // Assuming the previous reading is the third item in the line (based on the provided format)
+                        // Assuming the rate is the eighth item in the line (based on the provided format)
                         if (parts.Length > 7)
                         {
-                            rate = parts[7].Trim();
+                            rateString = parts[7].Trim();
                         }
                     }
-                    // Break the loop after finding and processing the line with "Previous Reading"
+                    // Break the loop after finding and processing the line with "BUSINESS EVERYDAY"
                     break;
                 }
+            }
+
+            // Convert the rate string to decimal
+            decimal rateDecimal = 0m;
+            if (!decimal.TryParse(rateString, NumberStyles.Currency, CultureInfo.InvariantCulture, out rateDecimal))
+            {
+                // Handle the case where parsing fails, if needed
+                Console.WriteLine($"Failed to parse rate '{rateString}' as decimal.");
             }
 
 
@@ -930,33 +834,27 @@ namespace DataExtraction.Library.Mappers.MeridianMappers
 
 
 
-
-
-
-            var quantity = string.Empty;
             string quantityPattern = @"(\d+\.?\d*)\s*(kWh)";
 
-            foreach (var line in extractedText)
-            {
-                // Match quantity
-                var quantityMatch = Regex.Match(line, quantityPattern, RegexOptions.IgnoreCase);
-                if (quantityMatch.Success)
-                {
-                    quantity = quantityMatch.Groups[1].Value;
-                    break;
-                }
+            // Extract quantity
+            string quantity = extractedText
+                .Select(line => Regex.Match(line, quantityPattern, RegexOptions.IgnoreCase))
+                .FirstOrDefault(match => match.Success)?.Groups[1].Value ?? string.Empty;
 
+            // Convert quantity to decimal
+            decimal quantityDecimal = 0m;
+            if (!decimal.TryParse(quantity, NumberStyles.Float, CultureInfo.InvariantCulture, out quantityDecimal))
+            {
+                // Optionally handle the case where parsing fails
+                quantityDecimal = 0m; // Default value if parsing fails
             }
 
 
 
 
 
-
-
-
-
-            var total = string.Empty;
+            string totalString = string.Empty;
+            decimal total = 0m;
 
             // Loop through each line in the extracted text with an index
             for (int i = 0; i < extractedText.Count; i++)
@@ -979,146 +877,83 @@ namespace DataExtraction.Library.Mappers.MeridianMappers
                         if (parts.Length > 0)
                         {
                             // Extract the total amount part (it may include the $ symbol)
-                            var amountPart = parts[parts.Length - 1].Trim();
+                            totalString = parts[parts.Length - 1].Trim();
 
                             // Remove the $ symbol if present
-                            total = amountPart.Replace("$", string.Empty).Trim();
+                            totalString = totalString.Replace("$", string.Empty).Trim();
+
+                            // Attempt to convert the total string to a decimal
+                            if (!decimal.TryParse(totalString, NumberStyles.Currency, CultureInfo.InvariantCulture, out total))
+                            {
+                                Console.WriteLine($"Failed to parse total amount: {totalString}");
+                                total = 0m; // Default value in case of parse failure
+                            }
                         }
                     }
                     // Break the loop after finding and processing the line with the relevant details
                     break;
                 }
-            }
 
 
 
 
 
+                var billMetadata = new BillMetadata
+                {
+                    //BillIdentifier = billIdentifier,
+                    billingCurrency = billingCurrency,
+                    billingAddress = billingAddress,
+                    totalAmountDue = totalAmountDue,
+                    dueDate = dueDate,
+                    customerServiceContact = customerServiceContact,
+                    currentBillAmount = currentBillAmountDecimal,
+                    accountNumber = accountNumber,
+                    invoiceNumber = invoiceNumber,
+                    invoiceDate = issueDate,
+                    fixedChargeTotal = fixedChargeTotal,
+                    ICP = icp,
+                    billingPeriod = billingPeriod,
+                    gst = gstDecimal,
+                    fixedChargeQuantity = fixedChargeQuantity,
+                    fixedChargeRate = fixedChargeRate,
+                    paymentMethods = paymentMethod,
+                    previousBalance = openingBalanceDecimal,
+                    previousPayment = previousPaymentDecimal,
+                    meterReadEndDate = readEndDate,
+                    meterReadStartDate = readStartDate,
 
 
-
-
-
-
-
-
-            ////PdfPig 
-            //DateTime? startDate = null;
-            //DateTime? endDate = null;
-            //bool isBillingPeriodPresent = combinedText.Contains("Metered Electricity");
-            //if (isBillingPeriodPresent)
-            //{
-            //    startDate = issueDate;
-            //    endDate = issueDate;
-            //}
-
-
-
-
-
-
-
-            //PdfPig
-            //string chargeName = "B8478 - Metered Electricity Jan to Mar 2024";
-            //decimal price = 14023.07m;
-            ////decimal quantity = 1m;
-            //string quantityUnit = "Unit";
-            //string priceUnit = "/Unit";
-            //decimal cost = 14023.07m;
-
-
-
-
-
-
-
-
-            var billMetadata = new BillMetadata
-            {
-                //BillIdentifier = billIdentifier,
-                billingCurrency = billingCurrency,
-                billingAddress = billingAddress,
-                totalAmountDue = totalAmountDue,
-                dueDate = dueDate,
-                customerServiceContact = customerServiceContact,
-                currentBillAmount = currentBillAmount,
-                accountNumber = accountNumber,
-                invoiceNumber = invoiceNumber,
-                invoiceDate = issueDate,
-                fixedChargeTotal = fixedChargeTotal,
-                ICP = icp,
-                billingPeriod = billingPeriod,
-                gst = gst,
-                fixedChargeQuantity = fixedChargeQuantity,
-                fixedChargeRate = fixedChargeRate,
-                paymentMethods = paymentMethod,
-                previousBalance = openingBalance,
-                previousPayment = previousPayment,
-                meterReadEndDate = readEndDate,
-                meterReadStartDate = readStartDate,
-
-
-                metersData = new List<metersData>
+                    metersData = new List<metersData>
                 {
                     new metersData
                     {
                 meterNumber = meterNumber,
                 meterMultiplier = multiplier,
                 type = type,
-                rate = rate,
-                quantity = quantity,
+                rate = rateDecimal,
+                quantity = quantityDecimal,
                 total = total,
                 previousReading = previousReading,
-                currentReading = currentReading,
+                currentReading = currentReading
                     }
-                }
-                templateId = templateId,
-                templateVersion = templateVersion,
-                utilityType = utilityType,
-                supplierName = supplier,
-                customerName = customerName,
-                fileName = fileName,
-                fileExtension = fileExtension
+                },
 
-            };
-
+                    templateId = templateId,
+                    templateVersion = 1,
+                    utilityType = utilityType,
+                    supplierName = supplier,
+                    customerName = customerName,
+                    fileName = fileName,
+                    fileExtension = fileExtension
 
 
-
-
-
-            //billMetadata.Charges.Add(new Charge
-            //{
-            //    ICP = icp,
-            //    ReadStartDate = readStartDate,
-            //    ReadEndDate = readEndDate,
-            //    FixedChargeQuantity = fixedChargeQuantity,
-            //    FixedChargeRate = fixedChargeRate,
-            //    FixedChargeTotal = fixedChargeTotal,
-            //    GST = gst,
-            //});
+                };
 
 
 
 
-
-
-
-
-            // Add total
-            //billMetadata.Finaltotal.Add(new FinalTotal
-            //{
-            //    MeterNumber = meterNumber,
-            //    Multiplier = multiplier,
-            //    Type = type,
-            //    PreviousReading = previousReading,
-            //    CurrentReading = currentReading,
-            //    Rate = rate,
-            //    Quantity = quantity,
-            //    Total = total
-            //});
-
-            await _jsonBillMapper.WriteToJsonAsync(billMetadata);
+                await _jsonBillMapper.WriteToJsonAsync(billMetadata);
+            }
         }
     }
 }

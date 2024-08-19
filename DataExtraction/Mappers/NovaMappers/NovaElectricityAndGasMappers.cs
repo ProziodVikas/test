@@ -31,7 +31,7 @@ namespace DataExtraction.Library.Mappers.NovaMappers.NovaElectricityAndGasMapper
         }
 
 
-        public async Task ProcessAsync(string groupedText, List<string> extractedText)
+        public async Task ProcessAsync(string groupedText, List<string> extractedText, string billsFolderPath)
         {
 
         //    string combinedText = string.Join(Environment.NewLine, extractedText);

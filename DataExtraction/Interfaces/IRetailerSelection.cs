@@ -5,6 +5,6 @@ namespace DataExtraction.Library.Interfaces
 {
     public interface IRetailerSelection
     {
-        Task ProcessExtractedTextAsync(List<string> extractedText);       
+        Task ProcessExtractedTextAsync(List<string> extractedText, string billsFolderPath);       
     }
 }
