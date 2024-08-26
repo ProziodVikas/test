@@ -1,9 +1,10 @@
 ﻿using DataExtraction.Library.Interfaces;
+using DataExtraction.Library.Mappers;
 using DataExtraction.Library.Mappers.ContactMappers;
-using DataExtraction.Library.Services;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
 using System.Threading.Tasks;
 
 namespace DataExtraction.Library.Retailers
@@ -15,16 +16,12 @@ namespace DataExtraction.Library.Retailers
             IMapper mapperInstance = null;
             if (groupedText != null)
             {
-                if (groupedText.Contains("Electricity") || groupedText.Contains("Gas"))
+                if (groupedText.Contains("Electricity") || groupedText.Contains("kWh"))
                 {
-                    // Provide the path where you want to save the CSV file
-                    var csvFilePath = "C:\\pdf\\Result.csv";
+                    var jsonFilePath = "C:\\pdf\\Result.json";
+                    var jsonBillMapper = new JsonBillMapper(jsonFilePath);
 
-                    // Create an instance of CsvBillMapper
-                    var csvBillMapper = new CsvBillMapper(csvFilePath);
-
-                    // Pass the instance of CsvBillMapper to SuncorpElectricityMapper
-                    mapperInstance = new ContactElectricityMapper(csvBillMapper);
+                    mapperInstance = new ContactElectricityMapper(jsonBillMapper);
 
                     if (mapperInstance != null)
                     {
@@ -34,4 +31,6 @@ namespace DataExtraction.Library.Retailers
             }
         }
     }
+
 }
+

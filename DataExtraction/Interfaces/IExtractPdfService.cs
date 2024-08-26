@@ -8,7 +8,7 @@ namespace DataExtraction.Library.Interfaces
 {
     public interface IExtractPdfService
     {
-        Task<List<string>> ExtractTextFromPdf(string filePath, string billsFolderPath);
+        Task<List<string>> ExtractTextFromPdf(string filePath, string incomingBillsFolderPath);
         //Task<List<string>> ExtractTextFromPdf(Stream pdfstream);
     }
 }

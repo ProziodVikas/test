@@ -8,7 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using DataExtraction.Library.Interfaces;
 
-namespace DataExtraction.Library.Mappers.MeridianMappers
+namespace DataExtraction.Library.Mappers
 {
     public class JsonBillMapper : IMapper
     {

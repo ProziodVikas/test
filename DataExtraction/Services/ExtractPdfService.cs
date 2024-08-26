@@ -80,12 +80,6 @@ namespace DataExtraction.Library.Services
             return extractedText;
         }
 
-
-
-
-
-
-
     }
 
 }

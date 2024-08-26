@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Drawing.Drawing2D;
 using System.Globalization;
+using System.IO.Enumeration;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -13,16 +15,19 @@ using DataExtraction.Library.Enums;
 using DataExtraction.Library.Interfaces;
 using DataExtraction.Library.Services;
 using UglyToad.PdfPig.Graphics.Operations.PathPainting;
+using Newtonsoft.Json;
+using System.Net.Http.Json;
+using System.Diagnostics.Metrics;
+using DataExtraction.Library.Mappers.ContactMappers;
 
 namespace DataExtraction.Library.Mappers.ContactMappers
 {
     public class ContactElectricityMapper : IMapper
     {
-        private readonly CsvBillMapper _csvBillMapper;
-
-        public ContactElectricityMapper(CsvBillMapper csvBillMapper)
+        private readonly JsonBillMapper _jsonBillMapper;
+        public ContactElectricityMapper(JsonBillMapper jsonBillMapper)
         {
-            _csvBillMapper = csvBillMapper;
+            _jsonBillMapper = jsonBillMapper;
         }
 
         public async Task ProcessAsync(string groupedText, List<string> extractedText, string billsFolderPath)
@@ -30,23 +35,57 @@ namespace DataExtraction.Library.Mappers.ContactMappers
             string combinedText = string.Join(Environment.NewLine, extractedText);
 
             //var country = Country.AU.ToString();
-            //    var utilityType = UtilityType.Electricity.ToString();
-            //    var supplier = Supplier.Contact.ToString();
+            var utilityType = UtilityType.Electricity.ToString();
+            var supplier = Supplier.Contact.ToString();
+            var billingCurrency = BillingCurrency.NZD.ToString();
+            var templateId = Guid.NewGuid().ToString();
+            int templateVersion = 1;
 
 
+            string fileName = string.Empty;
+            string fileExtension = string.Empty;
 
+            // Check if the directory exists
+            if (Directory.Exists(billsFolderPath))
+            {
+                // Get the PDF files in the directory
+                var pdfFiles = Directory.GetFiles(billsFolderPath, "*.pdf");
 
+                // Process only the first PDF file found
+                if (pdfFiles.Length > 0)
+                {
+                    var firstFilePath = pdfFiles.First();
+                    fileName = System.IO.Path.GetFileNameWithoutExtension(firstFilePath);
+                    fileExtension = System.IO.Path.GetExtension(firstFilePath);
+                }
+            }
+            else
+            {
+                throw new DirectoryNotFoundException($"The directory '{billsFolderPath}' does not exist.");
+            }
+
+
 
 
+            string customerName = string.Empty;
+            // Assuming the customer name follows a specific known structure
+            var potentialCustomerNameIndex = extractedText.FindIndex(line =>
+                line.Contains("LIMITED") || line.Contains("T/A"));
 
-            //    //var billIdentifier = BillIdentifier.ICP.ToString();
-            //    //if (extractedText.Any(s => s.Contains("Customer No:")))
-            //    //{
-            //    //    var billIdentifierText = extractedText.FirstOrDefault(s => s.Contains("Customer No:"));
-            //    //    billIdentifier = billIdentifierText.Split(":").Last().Trim();
-            //    //}
+            // If a valid index is found, extract the customer name
+            if (potentialCustomerNameIndex != -1)
+            {
+                var customerNameLine = extractedText[potentialCustomerNameIndex];
 
+                // Split by known delimiters or words and take the first part (before "T/A")
+                var splitByTA = customerNameLine.Split(new[] { "T/A" }, StringSplitOptions.None);
 
+                if (splitByTA.Length > 0)
+                {
+                    // Clean and normalize the name
+                    customerName = splitByTA[0].Replace(" ", "").Trim();
+                }
+            }
 
 
 
@@ -54,199 +93,284 @@ namespace DataExtraction.Library.Mappers.ContactMappers
 
 
 
-            //    ////Aspose.PDF AccountNumber
-            //    var accountNumber = string.Empty;
-            //    if (extractedText.Any(s => s.Contains("Customer No:") || s.Contains("Customer Number:") || s.Contains("Account number ") || s.Contains("Your account number")))
-            //    {
-            //        var accountNumberText = extractedText.FirstOrDefault(s => s.Contains("Customer No:") || s.Contains("Customer Number:") || s.Contains("Account number ") || s.Contains("Your account number"));
-            //        if (accountNumberText != null)
-            //        {
-            //            // Determine the keyword to split on
-            //            var keyword = new[] { "Customer No:", "Customer Number:", "Account number ", "Your account number" }
-            //                          .FirstOrDefault(k => accountNumberText.Contains(k));
+            var addressPattern = @"^\d+\/?\d*\s+\w+"; // Matches lines that start with numbers (e.g., street numbers)
+            var cityPattern = @"^[A-Za-z\s]+\d{4}$";  // Matches lines with city names followed by postal codes
 
-            //            if (keyword != null)
-            //            {
-            //                // Split the text at the keyword and get the part after it
-            //                var parts = accountNumberText.Split(new[] { keyword }, StringSplitOptions.None);
-            //                if (parts.Length > 1)
-            //                {
-            //                    // Extract the account number (the text after the keyword) and trim any remaining parts
-            //                    accountNumber = new string(parts[1].Trim().TakeWhile(char.IsDigit).ToArray());
+            string billingAddress = string.Empty;
+            bool addressStartFound = false;
 
-            //                    // Optionally, update the line to only contain the account number
-            //                    var index = extractedText.IndexOf(accountNumberText);
-            //                    if (index >= 0)
-            //                    {
-            //                        extractedText[index] = $"{keyword} {accountNumber}";
-            //                    }
-            //                }
-            //            }
-            //        }
-            //    }
+            for (int i = 0; i < extractedText.Count; i++)
+            {
+                var line = extractedText[i].Trim();
 
+                if (!string.IsNullOrEmpty(line))
+                {
+                    // Check if this line is the start of the address
+                    if (Regex.IsMatch(line, addressPattern, RegexOptions.IgnoreCase))
+                    {
+                        addressStartFound = true;
+                        billingAddress = line;  // Start capturing the address
+                    }
+                    // If we have started capturing the address, continue until we match the city pattern
+                    else if (addressStartFound)
+                    {
+                        billingAddress += " " + line;  // Append the line with a space
+                        if (Regex.IsMatch(line, cityPattern, RegexOptions.IgnoreCase))
+                        {
+                            break;  // Stop once the city pattern is matched
+                        }
+                    }
+                }
+            }
 
 
 
 
 
+            string totalAmountDue = string.Empty;
 
+            // Check each line for the phrase "Total amount due"
+            foreach (var line in extractedText)
+            {
+                if (line.Contains("Total amount due", StringComparison.OrdinalIgnoreCase))
+                {
+                    // Split the line at "Total amount due" and take the second part if it exists
+                    var parts = line.Split(new string[] { "Total amount due" }, StringSplitOptions.None);
+                    if (parts.Length > 1)
+                    {
+                        // Clean up the resulting string
+                        string remainingText = parts[1].Trim();
 
+                        // Find the first occurrence of the currency symbol ($) and extract the amount
+                        int dollarIndex = remainingText.IndexOf('$');
+                        if (dollarIndex != -1)
+                        {
+                            // Extract the amount starting from the dollar sign and following it
+                            string amountText = remainingText.Substring(dollarIndex + 1).Trim();
 
+                            // Remove any characters after the amount
+                            int endIndex = amountText.IndexOf(' ');
+                            if (endIndex != -1)
+                            {
+                                amountText = amountText.Substring(0, endIndex);
+                            }
 
+                            // Assign to totalAmountDue after trimming any trailing characters
+                            totalAmountDue = amountText.Trim();
+                            break;
+                        }
+                    }
+                }
+            }
 
 
 
 
 
 
+            DateOnly dueDate = default;
 
+            if (extractedText.Any(s => s.IndexOf("Due Date:", StringComparison.OrdinalIgnoreCase) >= 0 || s.IndexOf("due", StringComparison.OrdinalIgnoreCase) >= 0))
+            {
+                // Find the text line containing "Due Date:" or "Due" (ignoring case)
+                var dueDateText = extractedText.LastOrDefault(s => s.IndexOf("Due Date:", StringComparison.OrdinalIgnoreCase) >= 0 || s.IndexOf("due", StringComparison.OrdinalIgnoreCase) >= 0);
 
-            //    var invoiceNumber = string.Empty;
+                if (dueDateText != null)
+                {
+                    // Extract the part of the text after "Due" and trim any whitespace
+                    var dueIndex = dueDateText.IndexOf("due", StringComparison.OrdinalIgnoreCase);
+                    var datePart = dueDateText.Substring(dueIndex + 3).Trim();
 
-            //    // Check if any line contains "Invoice number"
-            //    if (extractedText.Any(s => s.Contains("Invoice number")))
-            //    {
-            //        // Find the line that contains "Invoice number"
-            //        var invoiceNumberText = extractedText.FirstOrDefault(s => s.Contains("Invoice number"));
+                    // Find the first sequence that resembles a date format
+                    var dateComponents = datePart.Split(new char[] { ' ', '-' }, StringSplitOptions.RemoveEmptyEntries);
+                    var potentialDate = string.Join(" ", dateComponents.Take(3)); // Take first 3 components to form the date
 
-            //        if (invoiceNumberText != null)
-            //        {
-            //            // Determine the keyword to split on
-            //            var keyword = new[] { "Invoice number" }
-            //                          .FirstOrDefault(k => invoiceNumberText.Contains(k));
+                    // Parse the date string into a DateTime object
+                    if (DateTime.TryParseExact(potentialDate, "dd MMM yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsedDate))
+                    {
+                        dueDate = DateOnly.FromDateTime(parsedDate);
+                    }
+                }
+            }
 
-            //            if (keyword != null)
-            //            {
-            //                // Split the text at the keyword and get the part after it
-            //                var parts = invoiceNumberText.Split(new[] { keyword }, StringSplitOptions.None);
 
-            //                if (parts.Length > 1)
-            //                {
-            //                    // Extract the invoice number (the text after the keyword) and trim any remaining parts
-            //                    invoiceNumber = new string(parts[1].Trim().TakeWhile(char.IsDigit).ToArray());
 
-            //                    // Optionally, update the line to only contain the invoice number
-            //                    var index = extractedText.IndexOf(invoiceNumberText);
-            //                    if (index >= 0)
-            //                    {
-            //                        extractedText[index] = $"{keyword} {invoiceNumber}";
-            //                    }
-            //                }
-            //            }
-            //        }
-            //    }
-            //    if (string.IsNullOrEmpty(invoiceNumber))
-            //    {
-            //        var index = extractedText.FindIndex(s => s.Contains("Invoice number"));
-            //        if (index >= 0 && index + 1 < extractedText.Count)
-            //        {
-            //            var nextLine = extractedText[index + 1].Trim();
-            //            invoiceNumber = new string(nextLine.TakeWhile(char.IsDigit).ToArray());
 
-            //            // Optionally, update the line with the extracted invoice number
-            //            extractedText[index + 1] = invoiceNumber;
-            //        }
-            //    }
 
 
+            string phonePattern = @"\b\d{4}\s\d{3}\s\d{3}\b"; // Matches phone numbers like 0800 496 777
 
+            // Initialize the customer service contact variable
+            var customerServiceContact = string.Empty;
 
+            // Find the line containing the customer service contact
+            foreach (var line in extractedText)
+            {
+                // Match phone number
+                var match = Regex.Match(line, phonePattern, RegexOptions.IgnoreCase);
+                if (match.Success)
+                {
+                    customerServiceContact = match.Value; // Extract the phone number
+                    break; // Stop after finding the first match
+                }
+            }
 
 
-            //    ////Aspose.PDF issueDate
-            //    var datePattern = @"(\d{1,2}\s[A-Za-z]+\s\d{4})";
-            //    var issueDate = string.Empty;
 
-            //    foreach (var line in extractedText)
-            //    {
-            //        var match = Regex.Match(line, datePattern);
-            //        if (match.Success)
-            //        {
-            //            string dateStr = match.Groups[1].Value;
-            //            if (DateTime.TryParseExact(dateStr, "dd/MM/yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsedDate))
-            //            {
-            //                issueDate = parsedDate.ToString("dd/MM/yyyy");
-            //                break;
-            //            }
-            //        }
-            //    }
 
 
 
 
+            //CURRENT BILLING AMOUNT
+            string currentBillAmount = string.Empty;
 
+            if (extractedText.Any(s => s.Contains("Total current charges")))
+            {
+                var currentBillAmountText = extractedText.FirstOrDefault(s => s.Contains("Total current charges"));
+                if (currentBillAmountText != null)
+                {
+                    // Find the index of the keyword
+                    int index = currentBillAmountText.IndexOf("Total current charges");
+                    // Extract the substring from the index of the keyword
+                    string amountString = currentBillAmountText.Substring(index).Replace("Total current charges", "").Trim();
 
+                    // Remove the '$' symbol and any other non-numeric characters if present
+                    amountString = amountString.Replace("$", string.Empty).Trim();
 
+                    // Store the cleaned string as it is
+                    currentBillAmount = amountString;
+                }
+            }
 
 
 
 
-            //    ////Aspose.PDF dueDate
-            //    var dueDate = string.Empty;
-            //    if (extractedText.Any(s => s.Contains("Due Date:") || s.Contains("Due")))
-            //    {
-            //        // Find the text line containing "Due Date:" or "Due"
-            //        var dueDateText = extractedText.LastOrDefault(s => s.Contains("Due Date:") || s.Contains("Due"));
 
-            //        // Extract the part of the text after the last occurrence of "Due"
-            //        var datePart = dueDateText.Split(new[] { "Due" }, StringSplitOptions.None).Last().Trim();
+            var accountNumber = string.Empty;
 
-            //        // Further clean the datePart if necessary (e.g., remove any currency symbols, words, etc.)
-            //        var cleanDatePart = new string(datePart.TakeWhile(c => char.IsDigit(c) || c == '/' || c == '-').ToArray());
+            // Check if any of the lines contain the relevant keywords
+            if (extractedText.Any(s => s.Contains("Customer No:") || s.Contains("Customer Number:") || s.Contains("Account number ")))
+            {
+                // Find the line that contains one of the keywords
+                var accountNumberText = extractedText.FirstOrDefault(s => s.Contains("Customer No:") || s.Contains("Customer Number:") || s.Contains("Account number "));
 
-            //        // Parse the date string into a DateTime object
-            //        if (DateTime.TryParse(cleanDatePart, out DateTime parsedDate))
-            //        {
-            //            // Format the date as dd/MM/yyyy
-            //            dueDate = parsedDate.ToString("dd/MM/yyyy");
-            //        }
-            //    }
+                if (accountNumberText != null)
+                {
+                    // Determine the keyword to split on
+                    var keyword = new[] { "Customer No:", "Customer Number:", "Account number " }
+                                  .FirstOrDefault(k => accountNumberText.Contains(k));
 
+                    if (keyword != null)
+                    {
+                        // Split the text at the keyword and get the part after it
+                        var parts = accountNumberText.Split(new[] { keyword }, StringSplitOptions.None);
+                        if (parts.Length > 1)
+                        {
+                            // Extract the account number (the text after the keyword) and trim any remaining parts
+                            accountNumber = new string(parts[1].Trim().TakeWhile(char.IsDigit).ToArray());
 
+                            // Optionally, update the line to only contain the account number
+                            var index = extractedText.IndexOf(accountNumberText);
+                            if (index >= 0)
+                            {
+                                extractedText[index] = $"{keyword} {accountNumber}";
+                            }
+                        }
+                    }
+                }
+            }
 
 
 
 
 
 
+            ////Aspose.PDF invoiceNumber
+            var invoiceNumber = string.Empty;
+            if (extractedText.Any(s => s.Contains("Invoice number ")))
+            {
+                var invoiceNumberText = extractedText.FirstOrDefault(s => s.Contains("Invoice number "));
+                if (invoiceNumberText != null)
+                {
+                    // Determine the keyword to split on
+                    var keyword = new[] { "Invoice number " }
+                                  .FirstOrDefault(k => invoiceNumberText.Contains(k));
 
+                    if (keyword != null)
+                    {
+                        // Split the text at the keyword and get the part after it
+                        var parts = invoiceNumberText.Split(new[] { keyword }, StringSplitOptions.None);
+                        if (parts.Length > 1)
+                        {
+                            // Extract the account number (the text after the keyword) and trim any remaining parts
+                            invoiceNumber = new string(parts[1].Trim().TakeWhile(char.IsDigit).ToArray());
 
+                            // Optionally, update the line to only contain the account number
+                            var index = extractedText.IndexOf(invoiceNumberText);
+                            if (index >= 0)
+                            {
+                                extractedText[index] = $"{keyword} {invoiceNumber}";
+                            }
+                        }
+                    }
+                }
+            }
 
 
-            //    // SERVICE DESCRIPTION
 
+            DateOnly issueDate = default;
+            var datePattern = @"\b\d{1,2}\s[A-Za-z]+\s\d{4}\b";
 
-            //    string serviceDescription = string.Empty;
+            // Define multiple date formats to match various possible representations of the date
+            string[] dateFormats = { "d MMM yyyy", "dd MMM yyyy", "d MMMM yyyy", "dd MMMM yyyy" };
 
-            //    // Loop through each line in the extracted text
-            //    foreach (var line in extractedText)
-            //    {
-            //        // Check if the line contains the "ICP" keyword
-            //        if (line.Contains("ICP"))
-            //        {
-            //            // Split the line at the "ICP" keyword and take the part before it
-            //            var parts = line.Split(new[] { "ICP" }, StringSplitOptions.None);
-            //            if (parts.Length > 0)
-            //            {
-            //                // The service description should be the part before "ICP"
-            //                serviceDescription = parts[0].Trim();
-            //            }
-            //            break; // Exit loop after finding and processing the description
-            //        }
-            //    }
+            foreach (var line in extractedText)
+            {
+                // Use regex to find a date pattern in the line
+                var match = Regex.Match(line, datePattern);
 
+                if (match.Success)
+                {
+                    string dateStr = match.Value; // Directly use the matched value
 
+                    // Attempt to parse the date string with any of the specified date formats
+                    if (DateTime.TryParseExact(dateStr, dateFormats, CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsedDate))
+                    {
+                        // Create a DateOnly instance from the parsed DateTime
+                        issueDate = DateOnly.FromDateTime(parsedDate);
 
+                        break; // Exit the loop once a valid date is found
+                    }
+                }
+            }
 
 
 
+            string fixedChargeTotalPattern = @"Daily charge\s*\(\d+\.\d+\s*c\/day\s*x\s*\d+\s*days\)\s*\$([\d\.]+)";
 
+            // Initialize variable
+            string fixedChargeTotal = string.Empty;
 
+            // Loop through each line of extracted text
+            foreach (var line in extractedText)
+            {
+                var match = Regex.Match(line, fixedChargeTotalPattern, RegexOptions.IgnoreCase);
+                if (match.Success)
+                {
+                    fixedChargeTotal = match.Groups[1].Value;
+                    break; // Stop after finding the fixed charge total
+                }
+            }
 
 
 
 
+            var icp = string.Empty;
+            if (extractedText.Any(s => s.Contains("ICP ")))
+            {
+                var icpText = extractedText.FirstOrDefault(s => s.Contains("ICP "));
+                icp = icpText.Split("ICP ").Last().Trim();
+            }
 
 
 
@@ -254,112 +378,162 @@ namespace DataExtraction.Library.Mappers.ContactMappers
 
 
 
-            //    string totalAmountDue = string.Empty;
 
-            //    // Check each line for the phrase "Total amount due"
-            //    foreach (var line in extractedText)
-            //    {
-            //        if (line.Contains("Total amount due", StringComparison.OrdinalIgnoreCase))
-            //        {
-            //            // Split the line at "Total amount due" and take the second part if it exists
-            //            var parts = line.Split(new string[] { "Total amount due" }, StringSplitOptions.None);
-            //            if (parts.Length > 1)
-            //            {
-            //                // Clean up the resulting string
-            //                string remainingText = parts[1].Trim();
 
-            //                // Find the first occurrence of the currency symbol ($) and extract the amount
-            //                int dollarIndex = remainingText.IndexOf('$');
-            //                if (dollarIndex != -1)
-            //                {
-            //                    totalAmountDue = remainingText.Substring(dollarIndex + 1).Trim(); // Skip the dollar sign
-            //                    break;
-            //                }
-            //            }
-            //        }
-            //    }
+            var billingPeriod = string.Empty;
+            var billDetailsIndex = extractedText.FindIndex(s => s.Contains("Your bill details"));
 
+            if (billDetailsIndex != -1 && billDetailsIndex + 1 < extractedText.Count)
+            {
+                var dateRangeLine = extractedText[billDetailsIndex + 1].Trim();
 
+                // Use regex to match the date range pattern
+                var regex = new Regex(@"(\d{1,2} \w+ \d{4}) to (\d{1,2} \w+ \d{4})");
+                var match = regex.Match(dateRangeLine);
 
+                if (match.Success)
+                {
+                    var startDateStr = match.Groups[1].Value;
+                    var endDateStr = match.Groups[2].Value;
 
+                    if (DateTime.TryParseExact(startDateStr, "d MMMM yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var startDate) &&
+                        DateTime.TryParseExact(endDateStr, "d MMMM yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var endDate))
+                    {
+                        var startFormatted = startDate.ToString("dd/MM/yyyy");
+                        var endFormatted = endDate.ToString("dd/MM/yyyy");
+                        billingPeriod = $"{startFormatted} to {endFormatted}";
+                    }
+                }
+            }
 
 
 
 
 
+            string gstPattern = @"GST\s*@\s*\d+%\s*\$([\d\.]+)";
+            string gst = string.Empty;
 
-            //    // PAYMENT METHOD
+            foreach (var line in extractedText)
+            {
+                var match = Regex.Match(line, gstPattern, RegexOptions.IgnoreCase);
+                if (match.Success)
+                {
+                    gst = match.Groups[1].Value;
+                    break;
+                }
+            }
 
-            //    string paymentMethod = string.Empty;
-            //    // Check if the line contains the "ICP" keyword
-            //    if (extractedText.Any(s => s.Contains("Payment by ")))
-            //    {
-            //        var paymentMethodText = extractedText.FirstOrDefault(s => s.Contains("Payment by "));
-            //        paymentMethod = paymentMethodText.Split("Payment by ").Last().Trim();
-            //    }
 
 
 
 
+            string fixedChargeQuantity = string.Empty;
+            string fixedChargeQuantityPattern = @"Daily charge\s*\(\d+\.\d+\s*c\/day\s*x\s*(\d+)\s*days\)";
 
+            foreach (var line in extractedText)
+            {
+                var match = Regex.Match(line, fixedChargeQuantityPattern, RegexOptions.IgnoreCase);
+                if (match.Success)
+                {
+                    fixedChargeQuantity = match.Groups[1].Value;
+                    break;
+                }
+            }
 
 
 
 
 
+            string fixedChargeRatePattern = @"Daily charge\s*\(([\d\.]+)\s*c/day";
 
+            // Initialize variable for storing the fixed charge rate as a string
+            string fixedChargeRate = string.Empty;
 
+            // Loop through each line of extracted text
+            foreach (var line in extractedText)
+            {
+                // Match fixed charge rate
+                var match = Regex.Match(line, fixedChargeRatePattern, RegexOptions.IgnoreCase);
+                if (match.Success)
+                {
+                    fixedChargeRate = match.Groups[1].Value;
+                    break;
+                }
+            }
 
 
 
+            // PAYMENT METHOD
+            string paymentMethod = string.Empty;
 
+            // Check if the line contains either "Payment by" or "payment method to a" keyword
+            if (extractedText.Any(s => s.Contains("Payment by ")) || extractedText.Any(s => s.Contains("payment method to a ")))
+            {
+                var paymentMethodText = extractedText.FirstOrDefault(s => s.Contains("Payment by ") || s.Contains("payment method to a "));
 
+                if (paymentMethodText != null)
+                {
+                    // Adjusting extraction logic based on the keyword
+                    if (paymentMethodText.Contains("Payment by "))
+                    {
+                        paymentMethod = paymentMethodText.Split(new string[] { "Payment by " }, StringSplitOptions.None).Last().Trim();
+                    }
+                    else if (paymentMethodText.Contains("payment method to a "))
+                    {
+                        paymentMethod = paymentMethodText.Split(new string[] { "payment method to a " }, StringSplitOptions.None).Last().Trim();
+                    }
 
-            //    var openingBalance = string.Empty;
-            //    string pattern = @"Opening account balance\s*\$([\d,]+\.\d{2})";
+                    // Remove any trailing special characters such as '-'
+                    paymentMethod = paymentMethod.TrimEnd('-', '.'); // Add more characters if needed
+                }
+            }
 
-            //    // Check if any line contains "Opening account balance"
-            //    if (extractedText.Any(s => s.Contains("Opening account balance")))
-            //    {
-            //        // Find the line with the "Opening account balance" text
-            //        var openingBalanceText = extractedText.FirstOrDefault(s => s.Contains("Opening account balance"));
 
-            //        // Extract the amount using regex
-            //        var match = Regex.Match(openingBalanceText, pattern, RegexOptions.IgnoreCase);
-            //        if (match.Success)
-            //        {
-            //            openingBalance = match.Groups[1].Value.Replace(",", ""); // Remove comma if present
-            //        }
-            //    }
 
 
+            string pattern = @"Opening account balance\s*\$([\d,]+\.\d{2})";
+            string openingBalance = string.Empty;
 
+            // Check if any line contains "Opening account balance"
+            if (extractedText.Any(s => s.Contains("Opening account balance")))
+            {
+                // Find the line with the "Opening account balance" text
+                var openingBalanceText = extractedText.FirstOrDefault(s => s.Contains("Opening account balance"));
 
+                // Extract the amount using regex
+                var match = Regex.Match(openingBalanceText, pattern, RegexOptions.IgnoreCase);
+                if (match.Success)
+                {
+                    openingBalance = match.Groups[1].Value.Replace(",", ""); // Remove comma if present
+                }
+            }
 
 
 
 
 
 
+            var previousPayment = string.Empty;
 
-            //    var previousPayment = string.Empty;
-            //    // Updated pattern to match amount with optional comma and dot
-            //    string previouspaymentpattern = @"Account payment\s*\(\s*\$(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)\s*\)";
+            // Updated pattern to match amount with optional comma and dot
+            string previousPaymentPattern = @"Account payment\s*\(\s*\$(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)\s*\)";
 
-            //    // Check if any line contains "Account payment"
-            //    if (extractedText.Any(s => s.Contains("Account payment ")))
-            //    {
-            //        // Find the line with the "Account payment" text
-            //        var previousPaymentText = extractedText.FirstOrDefault(s => s.Contains("Account payment "));
+            // Check if any line contains "Account payment"
+            if (extractedText.Any(s => s.Contains("Account payment ")))
+            {
+                // Find the line with the "Account payment" text
+                var previousPaymentText = extractedText.FirstOrDefault(s => s.Contains("Account payment "));
 
-            //        // Extract the amount using regex
-            //        var match = Regex.Match(previousPaymentText, previouspaymentpattern, RegexOptions.IgnoreCase);
-            //        if (match.Success)
-            //        {
-            //            previousPayment = match.Groups[1].Value; // Extract the amount
-            //        }
-            //    }
+                // Extract the amount using regex
+                var match = Regex.Match(previousPaymentText, previousPaymentPattern, RegexOptions.IgnoreCase);
+                if (match.Success)
+                {
+                    previousPayment = match.Groups[1].Value; // Extract the amount
 
+                    // No need to convert to decimal, just handle the string
+                    // previousPayment now contains the extracted amount as a string
+                }
+            }
 
 
 
@@ -367,784 +541,395 @@ namespace DataExtraction.Library.Mappers.ContactMappers
 
 
 
+            var dateRangePattern = @"(\d{1,2} \w+ \d{4}) to (\d{1,2} \w+ \d{4})";
+            DateOnly readStartDate = default;
 
+            string[] startDateFormats = { "d MMM yyyy", "dd MMM yyyy", "d MMMM yyyy", "dd MMMM yyyy" };
 
+            foreach (var line in extractedText)
+            {
+                // Use regex to find a date pattern in the line
+                var match = Regex.Match(line, dateRangePattern);
 
+                if (match.Success)
+                {
+                    string startDateStr = match.Groups[1].Value; // Directly use the matched value
 
+                    // Attempt to parse the date string with any of the specified date formats
+                    if (DateTime.TryParseExact(startDateStr, startDateFormats, CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsedDate))
+                    {
+                        readStartDate = DateOnly.FromDateTime(parsedDate);
 
+                        break; // Exit the loop once a valid date is found
+                    }
+                }
+            }
 
-            //    string phonePattern = @"(\b\d{4}\s\d{3}\s\d{3}\b)"; // Matches phone numbers like 0800 496 777
 
-            //    // Initialize the customer service contact variable
-            //    var customerServiceContact = string.Empty;
 
-            //    // Find the line containing the customer service contact
-            //    foreach (var line in extractedText)
-            //    {
-            //        // Match phone number
-            //        var match = Regex.Match(line, phonePattern, RegexOptions.IgnoreCase);
-            //        if (match.Success)
-            //        {
-            //            customerServiceContact = match.Groups[1].Value; // Extract the phone number
-            //            break; // Stop after finding the first match
-            //        }
-            //    }
 
 
+            DateOnly readEndDate = default; // Initialize as DateTime
 
+            string[] endDateFormats = { "d MMM yyyy", "dd MMM yyyy", "d MMMM yyyy", "dd MMMM yyyy" };
 
+            foreach (var line in extractedText)
+            {
+                // Use regex to find a date pattern in the line
+                var match = Regex.Match(line, dateRangePattern);
 
+                if (match.Success)
+                {
+                    string endDateStr = match.Groups[2].Value; // Directly use the matched value
 
+                    // Attempt to parse the date string with any of the specified date formats
+                    if (DateTime.TryParseExact(endDateStr, endDateFormats, CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsedDate))
+                    {
+                        readEndDate = DateOnly.FromDateTime(parsedDate);
+                        break; // Exit the loop once a valid date is found
+                    }
+                }
+            }
 
 
+            var meters = new List<metersData>();
+            metersData currentMeter = null;
 
 
+            var meterNumber = string.Empty;
 
+            // Loop through each line in the extracted text with an index
+            for (int i = 0; i < extractedText.Count; i++)
+            {
+                var line = extractedText[i];
+                // Check if the line contains "Previous Reading" which indicates the presence of the meter number
+                if (line.Contains("Previous Reading"))
+                {
+                    // Check if the next line exists
+                    if (i + 1 < extractedText.Count)
+                    {
+                        // Get the next line which contains the meter number and other details
+                        var nextLine = extractedText[i + 1].Trim();
 
+                        // Split the next line at ':' to separate the meter number from other details
+                        var meterNumberParts = nextLine.Split(':');
 
+                        if (meterNumberParts.Length > 0)
+                        {
+                            // Assuming the first part before ':' is the meter number
+                            meterNumber = meterNumberParts[0].Trim();
+                        }
+                    }
 
+                    if (currentMeter != null)
+                    {
+                        meters.Add(currentMeter);
+                    }
 
+                    // Start a new meter
+                    currentMeter = new metersData();
+                    currentMeter.meterTypes = new List<meterType>();
 
+                    // Get the meter number
+                    if (i + 1 < extractedText.Count)
+                    {
+                        var nextLine = extractedText[i + 1].Trim();
+                        var meterNumberParts = nextLine.Split(':');
+                        if (meterNumberParts.Length > 0)
+                        {
+                            currentMeter.meterNumber = meterNumberParts[0].Trim();
+                        }
+                    }
+                }
 
-            //    var addressPattern = @"^\d+[A-Za-z]?\s+\w+";
-            //    var cityPattern = @"^[A-Z]+\s*\d{4}$";
 
-            //    string billingAddress = string.Empty;
-            //    bool addressStartFound = false;
+                var type = string.Empty;
 
-            //    for (int i = 0; i < extractedText.Count; i++)
-            //    {
-            //        var line = extractedText[i].Trim();
+                if (currentMeter != null && line.Contains(":1")) // Pattern for detecting types
+                {
+                    var parts = line.Split(':');
+                    if (parts.Length > 1)
+                    {
+                        var details = parts[1].Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                        if (details.Length > 0)
+                        {
+                            var newType = new meterType();
 
-            //        if (!string.IsNullOrEmpty(line))
-            //        {
-            //            // Check if this line is the start of the address
-            //            if (Regex.IsMatch(line, addressPattern, RegexOptions.IgnoreCase))
-            //            {
-            //                addressStartFound = true;
-            //                billingAddress = line;
-            //            }
-            //            // If we have started capturing the address, continue until we match the city pattern
-            //            else if (addressStartFound)
-            //            {
-            //                billingAddress += "\n" + line;
-            //                if (Regex.IsMatch(line, cityPattern, RegexOptions.IgnoreCase))
-            //                {
-            //                    break;
-            //                }
-            //            }
-            //        }
-            //    }
 
 
+                            if (details.Length > 1)
+                            {
+                                newType.type = details[1].Trim();
+                            }
 
 
+                            for (int k = 0; k < extractedText.Count; k++)
+                            {
+                                line = extractedText[k];
 
+                                // Check if the line contains "Previous Reading" to locate the meter details
+                                if (line.Contains("Previous Reading"))
+                                {
+                                    // Check if the next line exists
+                                    if (k + 1 < extractedText.Count)
+                                    {
+                                        // Get the next line which contains the meter details
+                                        var meterLine = extractedText[k + 1].Trim();
 
+                                        // Split the meter line at ':' to separate the meter number from other details
+                                        parts = meterLine.Split(':');
 
+                                        if (parts.Length > 1)
+                                        {
+                                            // Split the part after ':' to isolate the type (assumed to be the first word after ':1')
+                                            details = parts[1].Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
 
+                                            if (details.Length > 1)
+                                            {
+                                                // Assuming the type is the second element after the split
+                                                newType.type = details[1].Trim();
+                                            }
+                                        }
+                                    }
+                                    // Break the loop after finding and processing the line with "Previous Reading"
+                                    break;
+                                }
+                            }
 
 
 
-            //    //CURRENT BILLING AMOUNT
 
-            //    var currentBillAmount = string.Empty;
 
-            //    if (extractedText.Any(s => s.Contains("Total charges ")))
-            //    {
-            //        var currentBillAmountText = extractedText.FirstOrDefault(s => s.Contains("Total charges "));
-            //        // Extract the amount after "Total charges "
-            //        currentBillAmount = currentBillAmountText.Split("Total charges ").Last().Trim();
+                            string meterMultiplier = null;
 
-            //        // Remove the '$' symbol from the amount if present
-            //        currentBillAmount = currentBillAmount.Replace("$", string.Empty).Trim();
-            //    }
+                            // Loop through each line in the extracted text with an index
+                            for (int k = 0; k < extractedText.Count; k++)
+                            {
+                                line = extractedText[i];
 
+                                // Check if the line contains "Previous Reading" which indicates the presence of the meter number
+                                if (line.Contains("Previous Reading"))
+                                {
+                                    // Check if the next line exists
+                                    if (k + 1 < extractedText.Count)
+                                    {
+                                        // Get the next line which contains the meter number and multiplier
+                                        var nextLine = extractedText[k + 1].Trim();
 
+                                        // Split the next line at ':' to separate the meter number from other details
+                                        parts = nextLine.Split(':');
 
+                                        if (parts.Length > 1)
+                                        {
+                                            // The multiplier is part of the text after the first ':', so we need to split it again by spaces
+                                            newType.meterMultiplier = parts[1].Trim().Split(' ').FirstOrDefault();
+                                        }
+                                    }
+                                    // Break the loop after finding and processing the line with "Previous Reading"
+                                    break;
+                                }
+                            }
 
 
 
 
+                            var rate = string.Empty;
 
+                            // Loop through each line in the extracted text with an index
+                            for (int k = 0; k < extractedText.Count; k++)
+                            {
+                                line = extractedText[k];
 
+                                // Check if the line contains "BUSINESS EVERYDAY" to locate the relevant line
+                                if (line.Contains("BUSINESS EVERYDAY"))
+                                {
+                                    // Check if the next line exists
+                                    if (k + 1 < extractedText.Count)
+                                    {
+                                        // Get the next line which contains the meter details
+                                        var meterLine = extractedText[k + 1].Trim();
 
+                                        // Split the meter line to isolate the rate
+                                        parts = meterLine.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
 
+                                        // Assuming the rate is the eighth item in the line (based on the provided format)
+                                        if (parts.Length > 7)
+                                        {
+                                            newType.rate = parts[7].Trim();
+                                        }
+                                    }
+                                    // Break the loop after finding and processing the line with "BUSINESS EVERYDAY"
+                                    break;
+                                }
+                            }
 
 
 
 
 
 
-            //    var icp = string.Empty;
-            //    if (extractedText.Any(s => s.Contains("ICP ")))
-            //    {
-            //        var icpText = extractedText.FirstOrDefault(s => s.Contains("ICP "));
-            //        icp = icpText.Split("ICP ").Last().Trim();
-            //    }
 
+                            string quantityPattern = @"(\d+\.?\d*)\s*(kWh)";
+                            var quantity = string.Empty;
+                            // Extract quantity
+                            newType.quantity = extractedText
+                                .Select(line => Regex.Match(line, quantityPattern, RegexOptions.IgnoreCase))
+                                .FirstOrDefault(match => match.Success)?.Groups[1].Value ?? string.Empty;
 
 
 
 
+                            string total = string.Empty;
 
+                            // Loop through each line in the extracted text with an index
+                            for (int k = 0; k < extractedText.Count; k++)
+                            {
+                                line = extractedText[k];
 
+                                // Check if the line contains a keyword or pattern related to the total amount
+                                if (line.Contains("BUSINESS EVERYDAY"))
+                                {
+                                    // Check if the next line exists
+                                    if (k + 1 < extractedText.Count)
+                                    {
+                                        // Get the next line which contains the details including the total amount
+                                        var detailsLine = extractedText[k + 1].Trim();
 
+                                        // Split the line to isolate different parts
+                                        parts = detailsLine.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
 
-            //    var billingPeriod = string.Empty;
-            //    var billDetailsIndex = extractedText.FindIndex(s => s.Contains("Your bill details"));
+                                        // Assuming the total amount is the last item in the line
+                                        if (parts.Length > 0)
+                                        {
+                                            // Extract the total amount part (it may include the $ symbol)
+                                            total = parts[parts.Length - 1].Trim();
 
-            //    if (billDetailsIndex != -1 && billDetailsIndex + 1 < extractedText.Count)
-            //    {
-            //        var dateRangeLine = extractedText[billDetailsIndex + 1].Trim();
+                                            // Remove the $ symbol if present
+                                            newType.total = total.Replace("$", string.Empty).Trim();
+                                        }
+                                    }
+                                    // Break the loop after finding and processing the line with the relevant details
+                                    break;
+                                }
+                            }
 
-            //        // Use regex to match the date range pattern
-            //        var regex = new Regex(@"(\d{1,2} \w+ \d{4}) to (\d{1,2} \w+ \d{4})");
-            //        var match = regex.Match(dateRangeLine);
 
-            //        if (match.Success)
-            //        {
-            //            var startDateStr = match.Groups[1].Value;
-            //            var endDateStr = match.Groups[2].Value;
 
-            //            if (DateTime.TryParseExact(startDateStr, "d MMMM yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var startDate) &&
-            //                DateTime.TryParseExact(endDateStr, "d MMMM yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var endDate))
-            //            {
-            //                var startFormatted = startDate.ToString("dd/MM/yyyy");
-            //                var endFormatted = endDate.ToString("dd/MM/yyyy");
-            //                billingPeriod = $"{startFormatted} to {endFormatted}";
-            //            }
-            //        }
-            //    }
 
 
+                            var previousReading = string.Empty;
 
+                            // Loop through each line in the extracted text with an index
+                            for (int k = 0; k < extractedText.Count; k++)
+                            {
+                                line = extractedText[k];
 
+                                // Check if the line contains "Previous Reading" to locate the relevant line
+                                if (line.Contains("Previous Reading"))
+                                {
+                                    // Check if the next line exists
+                                    if (k + 1 < extractedText.Count)
+                                    {
+                                        // Get the next line which contains the meter details
+                                        var meterLine = extractedText[k + 1].Trim();
 
+                                        // Split the meter line to isolate the previous reading
+                                        parts = meterLine.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
 
+                                        // Assuming the previous reading is the third item in the line (based on the provided format)
+                                        if (parts.Length > 2)
+                                        {
+                                            newType.previousReading = parts[2].Trim();
+                                        }
+                                    }
+                                    // Break the loop after finding and processing the line with "Previous Reading"
+                                    break;
+                                }
+                            }
 
-            //    //Aspose PeriodFrom
-            //    var dateRangePattern = @"(\d{1,2} \w+ \d{4}) to (\d{1,2} \w+ \d{4})";
-            //    var readStartDate = string.Empty;
 
-            //    foreach (var line in extractedText)
-            //    {
-            //        var match = Regex.Match(line, dateRangePattern, RegexOptions.IgnoreCase);
-            //        if (match.Success)
-            //        {
-            //            string startDateStr = match.Groups[1].Value;
 
-            //            if (DateTime.TryParseExact(startDateStr, "d MMMM yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var startDate))
-            //            {
-            //                readStartDate = startDate.ToString("dd/MM/yyyy");
-            //            }
-            //            break;
-            //        }
-            //    }
 
 
 
 
+                            var currentReading = string.Empty;
 
+                            // Loop through each line in the extracted text with an index
+                            for (int k = 0; k < extractedText.Count; k++)
+                            {
+                                line = extractedText[k];
 
+                                // Check if the line contains "Previous Reading" to locate the relevant line
+                                if (line.Contains("Previous Reading"))
+                                {
+                                    // Check if the next line exists
+                                    if (k + 1 < extractedText.Count)
+                                    {
+                                        // Get the next line which contains the meter details
+                                        var meterLine = extractedText[k + 1].Trim();
 
+                                        // Split the meter line to isolate the previous reading
+                                        parts = meterLine.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
 
+                                        // Assuming the previous reading is the third item in the line (based on the provided format)
+                                        if (parts.Length > 3)
+                                        {
+                                            newType.currentReading = parts[3].Trim();
+                                        }
+                                    }
+                                    // Break the loop after finding and processing the line with "Previous Reading"
+                                    break;
+                                };
 
+                            }
 
+                            currentMeter.meterTypes.Add(newType);
+                        }
+                    }
+                }
+            }
 
+            // Add the last meter if it exists
+            if (currentMeter != null)
+            {
+                meters.Add(currentMeter);
+            }
 
+            var billMetadata = new BillMetadata
+            {
+                billingCurrency = billingCurrency,
+                billingAddress = billingAddress,
+                totalAmountDue = totalAmountDue,
+                dueDate = dueDate,
+                customerServiceContact = customerServiceContact,
+                currentBillAmount = currentBillAmount,
+                accountNumber = accountNumber,
+                invoiceNumber = invoiceNumber,
+                invoiceDate = issueDate,
+                fixedChargeTotal = fixedChargeTotal,
+                ICP = icp,
+                billingPeriod = billingPeriod,
+                gst = gst,
+                fixedChargeQuantity = fixedChargeQuantity,
+                fixedChargeRate = fixedChargeRate,
+                paymentMethods = paymentMethod,
+                previousBalance = openingBalance,
+                previousPayment = previousPayment,
+                meterReadEndDate = readEndDate,
+                meterReadStartDate = readStartDate,
+                metersData = meters, // Use the adjusted list with multiple meter types
+                templateId = templateId,
+                templateVersion = templateVersion,
+                utilityType = utilityType,
+                supplierName = supplier,
+                customerName = customerName,
+                fileName = fileName,
+                fileExtension = fileExtension
+            };
 
+            await _jsonBillMapper.WriteToJsonAsync(billMetadata);
 
-
-
-
-
-
-            //    var readEndDate = string.Empty;
-            //    foreach (var line in extractedText)
-            //    {
-            //        var match = Regex.Match(line, dateRangePattern, RegexOptions.IgnoreCase);
-            //        if (match.Success)
-            //        {
-            //            string endDateStr = match.Groups[2].Value;
-            //            if (DateTime.TryParseExact(endDateStr, "d MMMM yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var endDate))
-            //            {
-            //                readEndDate = endDate.ToString("dd/MM/yyyy");
-            //            }
-            //            break;
-            //        }
-            //    }
-
-
-
-
-
-
-
-
-
-
-
-            //    string fixedChargeQuantity = string.Empty;
-            //    string fixedChargeQuantityPattern = @"Daily charge\s*\(\d+\.\d+\s*c\/day\s*x\s*(\d+)\s*days\)";
-
-            //    foreach (var line in extractedText)
-            //    {
-            //        var match = Regex.Match(line, fixedChargeQuantityPattern, RegexOptions.IgnoreCase);
-            //        if (match.Success)
-            //        {
-            //            fixedChargeQuantity = match.Groups[1].Value;
-            //            break;
-            //        }
-            //    }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-            //    string fixedChargeRatePattern = @"Daily charge\s*\(([\d\.]+)\s*c/day";
-
-            //    // Initialize variable for storing the fixed charge rate
-            //    string fixedChargeRate = string.Empty;
-
-            //    // Loop through each line of extracted text
-            //    foreach (var line in extractedText)
-            //    {
-            //        // Match fixed charge rate
-            //        var fixedChargeRateMatch = Regex.Match(line, fixedChargeRatePattern, RegexOptions.IgnoreCase);
-            //        if (fixedChargeRateMatch.Success)
-            //        {
-            //            fixedChargeRate = fixedChargeRateMatch.Groups[1].Value;
-            //            break;
-            //        }
-            //    }
-
-
-
-
-
-
-
-
-
-
-
-
-
-            //    string fixedChargeTotalPattern = @"Daily charge\s*\(\d+\.\d+\s*c\/day\s*x\s*\d+\s*days\)\s*\$([\d\.]+)";
-
-            //    // Initialize variable
-            //    string fixedChargeTotal = string.Empty;
-
-            //    // Loop through each line of extracted text
-            //    foreach (var line in extractedText)
-            //    {
-            //        var fixedChargeTotalMatch = Regex.Match(line, fixedChargeTotalPattern, RegexOptions.IgnoreCase);
-            //        if (fixedChargeTotalMatch.Success)
-            //        {
-            //            fixedChargeTotal = fixedChargeTotalMatch.Groups[1].Value;
-            //            break; // Stop after finding the fixed charge total
-            //        }
-            //    }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-            //    string gstPattern = @"GST\s*@\s*\d+%\s*\$([\d\.]+)";
-            //    string gst = string.Empty;
-
-            //    foreach (var line in extractedText)
-            //    {
-            //        var gstMatch = Regex.Match(line, gstPattern, RegexOptions.IgnoreCase);
-            //        if (gstMatch.Success)
-            //        {
-            //            gst = gstMatch.Groups[1].Value;
-            //            break;
-            //        }
-            //    }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-            //    //METER NUMBER
-
-            //    var meterNumber = string.Empty;
-
-            //    // Loop through each line in the extracted text with an index
-            //    for (int i = 0; i < extractedText.Count; i++)
-            //    {
-            //        var line = extractedText[i];
-            //        // Check if the line contains "Previous Reading" which indicates the presence of the meter number
-            //        if (line.Contains("Previous Reading"))
-            //        {
-            //            // Check if the next line exists
-            //            if (i + 1 < extractedText.Count)
-            //            {
-            //                // Get the next line which contains the meter number and other details
-            //                var nextLine = extractedText[i + 1].Trim();
-
-            //                // Split the next line at ':' to separate the meter number from other details
-            //                var meterNumberParts = nextLine.Split(':');
-
-            //                if (meterNumberParts.Length > 0)
-            //                {
-            //                    // Assuming the first part before ':' is the meter number
-            //                    meterNumber = meterNumberParts[0].Trim();
-            //                }
-            //            }
-            //            // Break the loop after finding and processing the line with "Previous Reading"
-            //            break;
-            //        }
-            //    }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-            //    var multiplier = string.Empty;
-
-            //    // Loop through each line in the extracted text with an index
-            //    for (int i = 0; i < extractedText.Count; i++)
-            //    {
-            //        var line = extractedText[i];
-
-            //        // Check if the line contains "Previous Reading" which indicates the presence of the meter number
-            //        if (line.Contains("Previous Reading"))
-            //        {
-            //            // Check if the next line exists
-            //            if (i + 1 < extractedText.Count)
-            //            {
-            //                // Get the next line which contains the meter number and multiplier
-            //                var nextLine = extractedText[i + 1].Trim();
-
-            //                // Split the next line at ':' to separate the meter number from other details
-            //                var parts = nextLine.Split(':');
-
-            //                if (parts.Length > 1)
-            //                {
-            //                    // The multiplier is part of the text after the first ':', so we need to split it again by spaces
-            //                    var potentialMultiplier = parts[1].Trim().Split(' ').FirstOrDefault();
-
-            //                    // Check if the extracted part is numeric, which would indicate it's the multiplier
-            //                    if (int.TryParse(potentialMultiplier, out var numericMultiplier))
-            //                    {
-            //                        multiplier = numericMultiplier.ToString();
-            //                    }
-            //                }
-            //            }
-            //            // Break the loop after finding and processing the line with "Previous Reading"
-            //            break;
-            //        }
-            //    }
-
-
-
-
-
-            //    var type = string.Empty;
-
-            //    // Loop through each line in the extracted text with an index
-            //    for (int i = 0; i < extractedText.Count; i++)
-            //    {
-            //        var line = extractedText[i];
-
-            //        // Check if the line contains "Previous Reading" to locate the meter details
-            //        if (line.Contains("Previous Reading"))
-            //        {
-            //            // Check if the next line exists
-            //            if (i + 1 < extractedText.Count)
-            //            {
-            //                // Get the next line which contains the meter details
-            //                var meterLine = extractedText[i + 1].Trim();
-
-            //                // Split the meter line at ':' to separate the meter number from other details
-            //                var parts = meterLine.Split(':');
-
-            //                if (parts.Length > 1)
-            //                {
-            //                    // Split the part after ':' to isolate the type (assumed to be the first word after ':1')
-            //                    var details = parts[1].Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-
-            //                    if (details.Length > 1)
-            //                    {
-            //                        // Assuming the type is the second element after the split
-            //                        type = details[1].Trim();
-            //                    }
-            //                }
-            //            }
-            //            // Break the loop after finding and processing the line with "Previous Reading"
-            //            break;
-            //        }
-            //    }
-
-
-
-
-
-
-            //    var previousReading = string.Empty;
-
-            //    // Loop through each line in the extracted text with an index
-            //    for (int i = 0; i < extractedText.Count; i++)
-            //    {
-            //        var line = extractedText[i];
-
-            //        // Check if the line contains "Previous Reading" to locate the relevant line
-            //        if (line.Contains("Previous Reading"))
-            //        {
-            //            // Check if the next line exists
-            //            if (i + 1 < extractedText.Count)
-            //            {
-            //                // Get the next line which contains the meter details
-            //                var meterLine = extractedText[i + 1].Trim();
-
-            //                // Split the meter line to isolate the previous reading
-            //                var parts = meterLine.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-
-            //                // Assuming the previous reading is the third item in the line (based on the provided format)
-            //                if (parts.Length > 2)
-            //                {
-            //                    previousReading = parts[2].Trim();
-            //                }
-            //            }
-            //            // Break the loop after finding and processing the line with "Previous Reading"
-            //            break;
-            //        }
-            //    }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-            //    var currentReading = string.Empty;
-
-            //    // Loop through each line in the extracted text with an index
-            //    for (int i = 0; i < extractedText.Count; i++)
-            //    {
-            //        var line = extractedText[i];
-
-            //        // Check if the line contains "Previous Reading" to locate the relevant line
-            //        if (line.Contains("Previous Reading"))
-            //        {
-            //            // Check if the next line exists
-            //            if (i + 1 < extractedText.Count)
-            //            {
-            //                // Get the next line which contains the meter details
-            //                var meterLine = extractedText[i + 1].Trim();
-
-            //                // Split the meter line to isolate the previous reading
-            //                var parts = meterLine.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-
-            //                // Assuming the previous reading is the third item in the line (based on the provided format)
-            //                if (parts.Length > 3)
-            //                {
-            //                    currentReading = parts[3].Trim();
-            //                }
-            //            }
-            //            // Break the loop after finding and processing the line with "Previous Reading"
-            //            break;
-            //        }
-            //    }
-
-
-
-
-
-
-
-            //    var rate = string.Empty;
-
-            //    // Loop through each line in the extracted text with an index
-            //    for (int i = 0; i < extractedText.Count; i++)
-            //    {
-            //        var line = extractedText[i];
-
-            //        // Check if the line contains "Previous Reading" to locate the relevant line
-            //        if (line.Contains("BUSINESS EVERYDAY"))
-            //        {
-            //            // Check if the next line exists
-            //            if (i + 1 < extractedText.Count)
-            //            {
-            //                // Get the next line which contains the meter details
-            //                var meterLine = extractedText[i + 1].Trim();
-
-            //                // Split the meter line to isolate the previous reading
-            //                var parts = meterLine.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-
-            //                // Assuming the previous reading is the third item in the line (based on the provided format)
-            //                if (parts.Length > 7)
-            //                {
-            //                    rate = parts[7].Trim();
-            //                }
-            //            }
-            //            // Break the loop after finding and processing the line with "Previous Reading"
-            //            break;
-            //        }
-            //    }
-
-
-
-
-
-
-
-
-
-            //    var quantity = string.Empty;
-            //    string quantityPattern = @"(\d+\.?\d*)\s*(kWh)";
-
-            //    foreach (var line in extractedText)
-            //    {
-            //        // Match quantity
-            //        var quantityMatch = Regex.Match(line, quantityPattern, RegexOptions.IgnoreCase);
-            //        if (quantityMatch.Success)
-            //        {
-            //            quantity = quantityMatch.Groups[1].Value;
-            //            break;
-            //        }
-
-            //    }
-
-
-
-
-
-
-
-
-
-            //    var total = string.Empty;
-
-            //    // Loop through each line in the extracted text with an index
-            //    for (int i = 0; i < extractedText.Count; i++)
-            //    {
-            //        var line = extractedText[i];
-
-            //        // Check if the line contains a keyword or pattern related to the total amount
-            //        if (line.Contains("BUSINESS EVERYDAY"))
-            //        {
-            //            // Check if the next line exists
-            //            if (i + 1 < extractedText.Count)
-            //            {
-            //                // Get the next line which contains the details including the total amount
-            //                var detailsLine = extractedText[i + 1].Trim();
-
-            //                // Split the line to isolate different parts
-            //                var parts = detailsLine.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-
-            //                // Assuming the total amount is the last item in the line
-            //                if (parts.Length > 0)
-            //                {
-            //                    // Extract the total amount part (it may include the $ symbol)
-            //                    var amountPart = parts[parts.Length - 1].Trim();
-
-            //                    // Remove the $ symbol if present
-            //                    total = amountPart.Replace("$", string.Empty).Trim();
-            //                }
-            //            }
-            //            // Break the loop after finding and processing the line with the relevant details
-            //            break;
-            //        }
-            //    }
-
-
-
-
-
-
-
-
-
-
-
-
-
-            //    ////PdfPig 
-            //    //DateTime? startDate = null;
-            //    //DateTime? endDate = null;
-            //    //bool isBillingPeriodPresent = combinedText.Contains("Metered Electricity");
-            //    //if (isBillingPeriodPresent)
-            //    //{
-            //    //    startDate = issueDate;
-            //    //    endDate = issueDate;
-            //    //}
-
-
-
-
-
-
-
-            //    //PdfPig
-            //    //string chargeName = "B8478 - Metered Electricity Jan to Mar 2024";
-            //    //decimal price = 14023.07m;
-            //    ////decimal quantity = 1m;
-            //    //string quantityUnit = "Unit";
-            //    //string priceUnit = "/Unit";
-            //    //decimal cost = 14023.07m;
-
-
-
-
-
-
-
-
-            //    var billMetadata = new BillMetadata
-            //    {
-            //        //BillIdentifier = billIdentifier,
-            //        Supplier = supplier,
-            //        AccountNumber = accountNumber,
-            //        InvoiceNumber = invoiceNumber,
-            //        IssueDate = issueDate,
-            //        DueDate = dueDate,
-            //        TotalAmountDue = totalAmountDue,
-            //        PaymentMethod = paymentMethod,
-            //        OpeningBalance = openingBalance,
-            //        PreviousPayment = previousPayment,
-            //        CustomerServiceContact = customerServiceContact,
-            //        CurrentBillAmount = currentBillAmount,
-
-            //        ICPS = new List<ICP>
-            //        {
-            //            new ICP
-            //            {
-            //        UtilityType = utilityType,
-            //        ICPCode = icp,
-            //        ServiceDescription = serviceDescription,
-            //        BillingAddress = billingAddress,
-            //        BillingPeriod = billingPeriod,
-            //        ReadStartDate = readStartDate,
-            //        ReadEndDate = readEndDate,
-            //         Meters = new List<Meter>
-            //         {
-            //             new Meter
-            //             {
-            //                  MeterNumber = meterNumber,
-            //        FixedChargeQuantity = fixedChargeQuantity,
-            //        FixedChargeRate = fixedChargeRate,
-            //        FixedChargeTotal = fixedChargeTotal,
-            //        GST = gst,
-            //       Types = new List<Type>
-            //       {
-            //           new Type
-            //           {
-            //        TypeName = type,
-            //        Multiplier = multiplier,
-            //        PreviousReading = previousReading,
-            //        CurrentReading = currentReading,
-            //        Rate = rate,
-            //        Quantity = quantity,
-            //        Total = total
-            //        }
-            //           }
-            //             }
-            //         }
-            //            }
-
-            //            }
-
-
-            //    };
-
-
-
-
-
-
-            //    //billMetadata.Charges.Add(new Charge
-            //    //{
-            //    //    ICP = icp,
-            //    //    ReadStartDate = readStartDate,
-            //    //    ReadEndDate = readEndDate,
-            //    //    FixedChargeQuantity = fixedChargeQuantity,
-            //    //    FixedChargeRate = fixedChargeRate,
-            //    //    FixedChargeTotal = fixedChargeTotal,
-            //    //    GST = gst,
-            //    //});
-
-
-
-
-
-
-
-
-            //    // Add total
-            //    //billMetadata.Finaltotal.Add(new FinalTotal
-            //    //{
-            //    //    MeterNumber = meterNumber,
-            //    //    Multiplier = multiplier,
-            //    //    Type = type,
-            //    //    PreviousReading = previousReading,
-            //    //    CurrentReading = currentReading,
-            //    //    Rate = rate,
-            //    //    Quantity = quantity,
-            //    //    Total = total
-            //    //});
-
-            //    await _csvBillMapper.WriteToCsvAsync(billMetadata);
-            //}
         }
     }
 }
