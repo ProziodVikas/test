@@ -41,27 +41,7 @@ namespace DataExtraction.Library.Mappers.MeridianMappers
             int templateVersion = 1;
 
 
-            string fileName = string.Empty;
-            string fileExtension = string.Empty;
-
-            // Check if the directory exists
-            if (Directory.Exists(billsFolderPath))
-            {
-                // Get the PDF files in the directory
-                var pdfFiles = Directory.GetFiles(billsFolderPath, "*.pdf");
-
-                // Process only the first PDF file found
-                if (pdfFiles.Length > 0)
-                {
-                    var firstFilePath = pdfFiles.First();
-                    fileName = System.IO.Path.GetFileNameWithoutExtension(firstFilePath);
-                    fileExtension = System.IO.Path.GetExtension(firstFilePath);
-                }
-            }
-            else
-            {
-                throw new DirectoryNotFoundException($"The directory '{billsFolderPath}' does not exist.");
-            }
+           
 
 
 
@@ -76,13 +56,18 @@ namespace DataExtraction.Library.Mappers.MeridianMappers
             {
                 var customerNameLine = extractedText[potentialCustomerNameIndex];
 
+                customerNameLine = Regex.Replace(customerNameLine, @"[()]", "");
                 // Split by known delimiters or words and take the first part (before "T/A")
                 var splitByTA = customerNameLine.Split(new[] { "T/A" }, StringSplitOptions.None);
 
                 if (splitByTA.Length > 0)
                 {
                     // Clean and normalize the name
-                    customerName = splitByTA[0].Replace(" ", "").Trim();
+                    var rawName = splitByTA[0].Trim();
+
+                    // Split by spaces, capitalize first letter of each word, and join without spaces
+                    customerName = string.Join("", rawName.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)
+                                                         .Select(word => char.ToUpper(word[0]) + word.Substring(1).ToLower()));
                 }
             }
 
@@ -294,7 +279,7 @@ namespace DataExtraction.Library.Mappers.MeridianMappers
 
 
 
-            DateOnly issueDate = default;
+            DateOnly invoiceDate = default;
             var datePattern = @"\b\d{1,2}\s[A-Za-z]+\s\d{4}\b";
 
             // Define multiple date formats to match various possible representations of the date
@@ -313,7 +298,7 @@ namespace DataExtraction.Library.Mappers.MeridianMappers
                     if (DateTime.TryParseExact(dateStr, dateFormats, CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsedDate))
                     {
                         // Create a DateOnly instance from the parsed DateTime
-                        issueDate = DateOnly.FromDateTime(parsedDate);
+                        invoiceDate = DateOnly.FromDateTime(parsedDate);
 
                         break; // Exit the loop once a valid date is found
                     }
@@ -872,6 +857,44 @@ namespace DataExtraction.Library.Mappers.MeridianMappers
                 meters.Add(currentMeter);
             }
 
+
+            string fileName = string.Empty;
+            string fileExtension = string.Empty;
+            string newFileName = string.Empty; // Declare newFileName outside the if block
+
+            if (Directory.Exists(billsFolderPath))
+            {
+                // Get the PDF files in the directory
+                var pdfFiles = Directory.GetFiles(billsFolderPath, "*.pdf");
+
+                // Process only the first PDF file found
+                if (pdfFiles.Length > 0)
+                {
+                    var firstFilePath = pdfFiles.First();
+                    fileName = System.IO.Path.GetFileNameWithoutExtension(firstFilePath);
+                    fileExtension = System.IO.Path.GetExtension(firstFilePath);
+
+                    // Construct the new filename using string interpolation
+                    newFileName = $"{customerName}_{supplier}_{accountNumber}_{utilityType}_{invoiceNumber}_{invoiceDate}{fileExtension}";
+                    fileName = newFileName; // Update fileName if necessary
+
+                    // Combine with the directory path to create the full path
+                    string newFilePath = System.IO.Path.Combine(billsFolderPath, newFileName);
+
+                    // Optionally, rename the file (uncomment the line below to actually rename)
+                    // File.Move(firstFilePath, newFilePath);
+
+                    // Output the new file name
+                    Console.WriteLine($"New file name: {newFileName}");
+                }
+            }
+            else
+            {
+                throw new DirectoryNotFoundException($"The directory '{billsFolderPath}' does not exist.");
+            }
+
+
+
             var billMetadata = new BillMetadata
             {
                 billingCurrency = billingCurrency,
@@ -882,7 +905,7 @@ namespace DataExtraction.Library.Mappers.MeridianMappers
                 currentBillAmount = currentBillAmount,
                 accountNumber = accountNumber,
                 invoiceNumber = invoiceNumber,
-                invoiceDate = issueDate,
+                invoiceDate = invoiceDate,
                 fixedChargeTotal = fixedChargeTotal,
                 ICP = icp,
                 billingPeriod = billingPeriod,

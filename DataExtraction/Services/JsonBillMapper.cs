@@ -70,8 +70,8 @@ namespace DataExtraction.Library.Mappers
                 {
                     // Ensure the correct names are used for each part, matching the API expectations
                     AddFormField(form, "accountNumber", billMetadata.accountNumber);
-                    AddFormField(form, "customerName", billMetadata.customerName);
-                    AddFormField(form, "supplierName", billMetadata.supplierName);
+                    AddFormField(form, "customer", billMetadata.customerName);
+                    AddFormField(form, "supplier", billMetadata.supplierName);
                     AddFormField(form, "utilityType", billMetadata.utilityType);
                     AddFormField(form, "invoiceNumber", billMetadata.invoiceNumber);
                     AddFormField(form, "invoiceDate", billMetadata.invoiceDate.ToString("yyyy-MM-dd"));
@@ -96,11 +96,11 @@ namespace DataExtraction.Library.Mappers
 
                         if (!response.IsSuccessStatusCode)
                         {
-                            Console.WriteLine($"Failed to upload parsed data. Status Code: {response.StatusCode}, Response: {responseContent}");
+                            Console.WriteLine($"Failed to upload parsed bill. Status Code: {response.StatusCode}, Response: {responseContent}");
                         }
                         else
                         {
-                            Console.WriteLine("Parsed data uploaded successfully.");
+                            Console.WriteLine("Parsed bill uploaded successfully.");
                         }
                     }
                     catch (HttpRequestException e)

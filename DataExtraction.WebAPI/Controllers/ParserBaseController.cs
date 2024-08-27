@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.IO;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using DataExtraction.Library.Interfaces;
 using Microsoft.AspNetCore.Mvc;
@@ -68,16 +69,17 @@ namespace DataExtraction.WebAPI.Controllers
 
         private string GetCustomerName(IEnumerable<string> extractedText)
         {
-            var customerName = string.Empty;
+            string customerName = string.Empty;
 
-            // Assuming the customer name follows a specific known structure
-            var potentialCustomerNameIndex = extractedText
-                .Select((line, index) => new { line, index })
-                .FirstOrDefault(x => x.line.Contains("LIMITED") || x.line.Contains("T/A"))?.index;
+            // Use LINQ to find the first line that contains "LIMITED" or "T/A"
+            var customerNameLine = extractedText
+                .FirstOrDefault(line => line.Contains("LIMITED", StringComparison.OrdinalIgnoreCase) || line.Contains("T/A", StringComparison.OrdinalIgnoreCase));
 
-            if (potentialCustomerNameIndex.HasValue)
+            // If a valid line is found, extract the customer name
+            if (customerNameLine != null)
             {
-                var customerNameLine = extractedText.ElementAt(potentialCustomerNameIndex.Value);
+                // Remove only the brackets using a regular expression
+                customerNameLine = Regex.Replace(customerNameLine, @"[()]", "");
 
                 // Split by known delimiters or words and take the first part (before "T/A")
                 var splitByTA = customerNameLine.Split(new[] { "T/A" }, StringSplitOptions.None);
@@ -85,7 +87,11 @@ namespace DataExtraction.WebAPI.Controllers
                 if (splitByTA.Length > 0)
                 {
                     // Clean and normalize the name
-                    customerName = splitByTA[0].Replace(" ", "").Trim();
+                    var rawName = splitByTA[0].Trim();
+
+                    // Split by spaces, capitalize the first letter of each word, and join without spaces
+                    customerName = string.Join("", rawName.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)
+                                                         .Select(word => char.ToUpper(word[0]) + word.Substring(1).ToLower()));
                 }
             }
 

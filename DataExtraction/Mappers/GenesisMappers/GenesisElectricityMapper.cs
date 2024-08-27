@@ -23,8 +23,8 @@ namespace DataExtraction.Library.Mappers.SuncorpMappers
 
         public async Task ProcessAsync(string groupedText, List<string> extractedText, string billsFolderPath)
         {
-           
 
+            var supplier = Supplier.Meridian.ToString();
 
 
         }
